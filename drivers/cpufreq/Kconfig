@@ -126,6 +126,14 @@ config CPU_FREQ_DEFAULT_GOV_INTERACTIVE
 	  loading your cpufreq low-level hardware driver, using the
 	  'interactive' governor for latency-sensitive workloads.
 
+
+config CPU_FREQ_DEFAULT_GOV_SCARY
+	bool "scary"
+	select CPU_FREQ_GOV_SCARY
+	select CPU_FREQ_GOV_SCARY
+	help
+	  Use the CPUFreq governor 'scary' as default
+
 config CPU_FREQ_DEFAULT_GOV_INTERACTIVEX
 	bool "interactiveX"
 	select CPU_FREQ_GOV_INTERACTIVEX
@@ -135,13 +143,6 @@ config CPU_FREQ_DEFAULT_GOV_INTERACTIVEX
 	  loading your cpufreq low-level hardware driver, using the
 	  'interactiveX' governor for latency-sensitive workloads.
 	  Has sleep profile.
-
-config CPU_FREQ_DEFAULT_GOV_SCARY
-	bool "scary"
-	select CPU_FREQ_GOV_SCARY
-	select CPU_FREQ_GOV_SCARY
-	help
-	  Use the CPUFreq governor 'scary' as default
 
 config CPU_FREQ_DEFAULT_GOV_MINMAX
 	bool "minmax"
@@ -161,7 +162,7 @@ config CPU_FREQ_DEFAULT_GOV_SMARTASS
 
 config CPU_FREQ_DEFAULT_GOV_SMOOTHASS
 	bool "smoothass"
-	select CPU_FREQ_GOV_SMOOTHASS"
+	select CPU_FREQ_GOV_SMOOTHASS
 	select CPU_FREQ_GOV_PERFORMANCE
 	help
 	  Use the CPUFreq governor 'smoothass' as default.
@@ -172,13 +173,6 @@ config CPU_FREQ_DEFAULT_GOV_LAGFREE
 	select CPU_FREQ_GOV_PERFORMANCE
 	help
 	  Use the CPUFreq governor 'lagfree' as default.
-
-config CPU_FREQ_DEFAULT_GOV_LULZACTIVE
-	bool "lulzactive"
-	select CPU_FREQ_GOV_LULZACTIVE
-	select CPU_FREQ_GOV_PERFORMANCE
-	help
-	  Use the CPUFreq governor 'lulzactive' as default.
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -279,19 +273,12 @@ config CPU_FREQ_GOV_SCARY
 	  scary - a governor for cabbages
 	  If in doubt, say N.
 
+
 config CPU_FREQ_GOV_SMARTASS2
 	tristate "'smartassV2' cpufreq governor"
 	depends on CPU_FREQ
 	help
 	  'smartassV2' - a "smart" governor
-	  If in doubt, say N.
-
-config CPU_FREQ_GOV_LULZACTIVE
-	tristate "'lulzactive' cpufreq governor"
-	depends on CPU_FREQ
-	help
-	  'lulzactive' - a new interactive governor by Tegrak!
-
 	  If in doubt, say N.
 
 config CPU_FREQ_GOV_MINMAX
