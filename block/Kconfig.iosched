@@ -36,22 +36,29 @@ config IOSCHED_CFQ
 
 	  Note: If BLK_CGROUP=m, then CFQ can be built only as module.
 
+config IOSCHED_SIO
+	tristate "Simple I/O scheduler"
+	default y
+	---help---
+	  The Simple I/O scheduler is an extremely simple scheduler,
+          based on noop and deadline, that relies on deadlines to
+          ensure fairness. The algorithm does not do any sorting but
+          basic merging, trying to keep a minimum overhead. It is aimed	
+          mainly for aleatory access devices (eg: flash devices).
+
 config CFQ_GROUP_IOSCHED
 	bool "CFQ Group Scheduling support"
 	depends on IOSCHED_CFQ && BLK_CGROUP
 	default n
 	---help---
 	  Enable group IO scheduling in CFQ.
-
-config IOSCHED_SIO
-	tristate "Simple I/O scheduler"
+config IOSCHED_VR
+	tristate "V(R) I/O scheduler"
 	default y
 	---help---
-	  The Simple I/O scheduler is an extremely simple scheduler,
-	  based on noop and deadline, that relies on deadlines to
-	  ensure fairness. The algorithm does not do any sorting but
-	  basic merging, trying to keep a minimum overhead. It is aimed
-	  mainly for aleatory access devices (eg: flash devices).
+	  Requests are chosen according to SSTF with a penalty of rev_penalty
+    	  for switching head direction.
+
 
 choice
 	prompt "Default I/O scheduler"
@@ -72,6 +79,9 @@ choice
 	config DEFAULT_SIO
 		bool "SIO" if IOSCHED_SIO=y
 
+	config DEFAULT_VR
+		bool "VR" if IOSCHED_VR=y
+
 endchoice
 
 config DEFAULT_IOSCHED
@@ -80,6 +90,7 @@ config DEFAULT_IOSCHED
 	default "cfq" if DEFAULT_CFQ
 	default "noop" if DEFAULT_NOOP
 	default "sio" if DEFAULT_SIO
+	default "vr" if DEFAULT_VR
 
 endmenu
 
