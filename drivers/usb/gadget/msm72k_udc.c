@@ -1541,8 +1541,10 @@ static int usb_free(struct usb_info *ui, int ret)
 {
 	dev_dbg(&ui->pdev->dev, "usb_free(%d)\n", ret);
 
+#ifdef CONFIG_USB_MSM_OTG_72K
 	if (ui->xceiv)
 		otg_put_transceiver(ui->xceiv);
+#endif
 
 	if (ui->irq)
 		free_irq(ui->irq, 0);
@@ -2579,9 +2581,11 @@ static int msm72k_probe(struct platform_device *pdev)
 	if (!ui->pool)
 		return usb_free(ui, -ENOMEM);
 
+#ifdef CONFIG_USB_MSM_OTG_72K
 	ui->xceiv = otg_get_transceiver();
 	if (!ui->xceiv)
 		return usb_free(ui, -ENODEV);
+#endif
 
 	otg = to_msm_otg(ui->xceiv);
 	ui->addr = otg->regs;
