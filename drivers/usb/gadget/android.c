@@ -686,12 +686,12 @@ static void android_set_function_mask(struct android_usb_product *up)
 		/*NRB_CHANGES_S [myoungkim@nuribom.com] 2011-07-15 HiddenMenu : add PORT */
 		//adb enable after boot complete.
 		//if (!switch_flag)  
-		if(!get_adb_demon_started() || !switch_flag)
-		{
-		/* adb function enable/disable handled separetely */
-		if (!strcmp(func->name, "adb"))
-			continue;
-		}
+		//if(!get_adb_demon_started() || !switch_flag)
+		//{
+		///* adb function enable/disable handled separetely */
+		//if (!strcmp(func->name, "adb"))
+		//	continue;
+		//}
 		/*NRB_CHANGES_E [myoungkim@nuribom.com]  */
 		/* END:0011785 [yk.kim@lge.com] 2010-12-09 */
 		
