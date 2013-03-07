@@ -666,12 +666,12 @@ static void android_set_function_mask(struct android_usb_product *up)
 
 	list_for_each_entry(func, &android_config_driver.functions, list) {
 		/* BEGIN:0012045 [yk.kim@lge.com] 2010-12-09, fix adb connect fail when CTS test */
-		if (!switch_flag)
-		{
-		/* adb function enable/disable handled separetely */
-		if (!strcmp(func->name, "adb"))
-			continue;
-		}
+		//if (!switch_flag)
+		//{
+		///* adb function enable/disable handled separetely */
+		//if (!strcmp(func->name, "adb"))
+		//	continue;
+		//}
 		/* END:0011785 [yk.kim@lge.com] 2010-12-09 */
 		
 		for (index = 0; index < up->num_functions; index++) {
