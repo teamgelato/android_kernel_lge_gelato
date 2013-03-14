@@ -399,6 +399,16 @@ Don't change previous defines and add new id at the end
 // LGE_CHANGE_S [myeonggyu.son@lge.com] 2011-03-25, UTS SECTION SCREEN CAPTURE [START]
 #define DIAG_LGE_SCREEN_SECTION_SHOT_F		151
 // LGE_CHANGE_E [myeonggyu.son@lge.com] 2011-03-25, UTS SECTION SCREEN CAPTURE [END]
+// LGE_CHANGE_S sanghun.eo@lge.com
+#if 1	//def LG_FW_SECURITY_BINARY
+#define DIAG_TF_SB_CMD_F   			159/* Tracfone향 히든 커맨드 - 락이 풀리므로 사업자는 절대 알면 안됨!! */
+#endif
+// LGE_CHANGE_E sanghun.eo@lge.com
+// LGE_CHANGE_S moses.son@lge.com
+#if 1	//def LG_FW_USB_ACCESS_LOCK
+#define DIAG_TF_CMD_F   			161/* Tracfone향 히든 커맨드 - 락이 풀리므로 사업자는 절대 알면 안됨!! */
+#endif
+// LGE_CHANGE_E moses.son@lge.com
 /* LGE_CHANGE_S [jihoon.lee@lge.com] 2010-02-07, LG_FW_MTC */
 #define DIAG_MTC_F              240
 /* LGE_CHANGE_E [jihoon.lee@lge.com] 2010-02-07, LG_FW_MTC */

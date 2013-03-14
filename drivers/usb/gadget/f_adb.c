@@ -279,7 +279,7 @@ static ssize_t adb_read(struct file *fp, char __user *buf,
 	int ret;
 
 	DBG(cdev, "adb_read(%d)\n", count);
-	
+
 	if (count > BULK_BUFFER_SIZE)
 		return -EINVAL;
 
@@ -446,41 +446,15 @@ static struct miscdevice adb_device = {
 	.fops = &adb_fops,
 };
 
-/*NRB_CHANGES_S [myoungkim@nuribom.com] 2011-07-15 HiddenMenu : add PORT */
-//adb enable after boot complete.
-extern int get_pid_switch_flag(void);
-
-int adb_demon_started = 0;
-
-int get_adb_demon_started(void)
-{
-  return adb_demon_started;
-}
-/*NRB_CHANGES_E [myoungkim@nuribom.com] 2011-07-15 HiddenMenu : add PORT */
-
 static int adb_enable_open(struct inode *ip, struct file *fp)
 {
+	printk(KERN_ERR "%s\n", __func__);
 
-/*NRB_CHANGES_S [myoungkim@nuribom.com] 2011-07-15 HiddenMenu : add PORT */
-//adb enable after boot complete.
-	adb_demon_started = 1;
-
-	if(get_pid_switch_flag() != 1){
-		atomic_inc_return(&adb_enable_excl);
-
-		printk(KERN_ERR "boot return %s\n", __func__);	
-		return 0;
-		}
-/*NRB_CHANGES_E [myoungkim@nuribom.com]*/
-	
 	if (atomic_inc_return(&adb_enable_excl) != 1) {
 		atomic_dec(&adb_enable_excl);
 
 		printk(KERN_ERR "%s error return!!!\n", __func__);
-/*NRB_CHANGES_S [myoungkim@nuribom.com] 2011-07-15 HiddenMenu : add PORT */
-//adb enable after boot complete.		
-		adb_demon_started = 0;
-/*NRB_CHANGES_E [myoungkim@nuribom.com] 2011-07-15 */		
+		
 		return -EBUSY;
 	}
 
@@ -494,6 +468,8 @@ static int adb_enable_release(struct inode *ip, struct file *fp)
 {
 	extern void usb_reset_adb(void);		// moses.son@lge.com need to check
 
+	printk(KERN_ERR "%s\n", __func__);
+	
 #ifdef CONFIG_LGE_USB_GADGET_DRIVER
 	u16 pid;
 	extern 		u16 android_get_product_id(void);
@@ -501,12 +477,8 @@ static int adb_enable_release(struct inode *ip, struct file *fp)
 	extern const u16 lg_factory_pid;
 #endif	
 	pid = android_get_product_id();
-
-/*NRB_CHANGES_S [myoungkim@nuribom.com] 2011-07-15 HiddenMenu : add PORT */
-//adb enable after boot complete.
-	adb_demon_started = 0;
-/*NRB_CHANGES_E [myoungkim@nuribom.com] 2011-07-15 */
-
+	
+		
 #ifdef CONFIG_USB_SUPPORT_LGE_ANDROID_AUTORUN
 #if defined(CONFIG_USB_SUPPORT_LGE_ANDROID_AUTORUN_CGO)
 	if ((pid == lg_autorun_pid) || (pid == lg_charge_only_pid))
@@ -732,6 +704,7 @@ static struct android_usb_function adb_function = {
 static int __init init(void)
 {
 	pr_debug("f_adb init\n");
+	printk(KERN_ERR "f_adb init\n");
 	
 	android_register_function(&adb_function);
 	return 0;

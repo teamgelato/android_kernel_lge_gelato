@@ -178,7 +178,7 @@ int msm_chg_LG_cable_type(void)
 	} while (rc < 0 && errCount++ < 3);
 
 /* LGE_CHANGES_E [younsuk.song@lge.com] */
-
+	
 	if (ret.output != NULL)	
 	{
 		memcpy(output,ret.output,*ret.out_len);
@@ -514,6 +514,102 @@ int lg_get_flight_mode(void)
 EXPORT_SYMBOL(lg_get_flight_mode);
 //20100914 yongman.kwon@lge.com [MS690] power check mode [END]
 #endif
+
+#if 1	//def LG_FW_USB_ACCESS_LOCK
+int lg_get_usb_lock_state(void)
+{
+	struct oem_rapi_client_streaming_func_arg arg;
+	struct oem_rapi_client_streaming_func_ret ret;
+	byte lock_state = 0xFF;
+	unsigned int out_len = 0xFFFFFFFF;
+
+	Open_check();
+
+	arg.event = LG_FW_GET_USB_LOCK_STATE;
+	arg.cb_func = NULL;
+	arg.handle = (void*) 0;
+	arg.in_len = 0;
+	arg.input = NULL;
+	arg.out_len_valid = 1;
+	arg.output_valid = 1;
+	arg.output_size = 1;
+
+	ret.output = NULL;
+	ret.out_len = NULL;
+
+	oem_rapi_client_streaming_function(client, &arg, &ret);
+
+	lock_state = *ret.output;
+	out_len = *ret.out_len;
+
+	return lock_state;
+}
+EXPORT_SYMBOL(lg_get_usb_lock_state);
+
+void lg_set_usb_lock_state(int lock)
+{
+	struct oem_rapi_client_streaming_func_arg arg;
+	struct oem_rapi_client_streaming_func_ret ret;
+
+	Open_check();
+	arg.event = LG_FW_SET_USB_LOCK_STATE;
+	arg.cb_func = NULL;
+	arg.handle = (void*) 0;
+	arg.in_len = sizeof(int);
+	arg.input = (char*) &lock;
+	arg.out_len_valid = 0;
+	arg.output_valid = 0;
+	arg.output_size = 0;
+
+	ret.output = (char*)NULL;
+	ret.out_len = 0;
+
+	oem_rapi_client_streaming_function(client,&arg,&ret);
+	return;
+
+}
+EXPORT_SYMBOL(lg_set_usb_lock_state);
+
+void lg_get_spc_code(char * spc_code)
+{
+	struct oem_rapi_client_streaming_func_arg arg;
+	struct oem_rapi_client_streaming_func_ret ret;
+	unsigned int out_len = 0xFFFFFFFF;
+
+	Open_check();
+
+	arg.event = LG_FW_GET_SPC_CODE;
+	arg.cb_func = NULL;
+	arg.handle = (void*) 0;
+	arg.in_len = 0;
+	arg.input = NULL;
+	arg.out_len_valid = 1;
+	arg.output_valid = 1;
+	arg.output_size = 6;
+
+	ret.output = NULL;
+	ret.out_len = NULL;
+
+	oem_rapi_client_streaming_function(client, &arg, &ret);
+
+
+	if (out_len && ret.output)
+	{
+		out_len = *ret.out_len;
+		memcpy(spc_code, ret.output, out_len);
+		
+		kfree(ret.output);
+		kfree(ret.out_len);
+	}
+	else
+		memset(spc_code, 0x0, 6);
+	return;
+}
+EXPORT_SYMBOL(lg_get_spc_code);
+
+
+#endif
+
 
 #ifdef CONFIG_USB_SUPPORT_LGE_ANDROID_AUTORUN
 void msm_get_SW_VER_type(char* sw_ver)

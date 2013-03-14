@@ -344,9 +344,18 @@ static inline enum chg_type usb_get_chg_type(struct usb_info *ui)
 		return USB_CHG_TYPE__WALLCHARGER;
 
 #endif
+#if 1	//def LG_FW_USB_ACCESS_LOCK
+	extern int get_usb_lock(void);
+
+	static int test_lock_state = 0;
+	
+	get_usb_lock();
+#endif
 
 	if ((readl(USB_PORTSC) & PORTSC_LS) == PORTSC_LS)
+	{
 		return USB_CHG_TYPE__WALLCHARGER;
+	}
 	else
 		return USB_CHG_TYPE__SDP;
 }

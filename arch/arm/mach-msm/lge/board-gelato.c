@@ -268,13 +268,6 @@ static char *usb_functions_rmnet[] = {
 };
 #endif
 
-/* NRB_CHANGES_S [myoungkim@nuribom.com] 2011-05-29 - ##port#*/
-static char * usb_functions_portlock[] = {
-	"usb_mass_storage",
-	"adb",
-};
-/* NRB_CHANGES_E [myoungkim@nuribom.com] 2011-05-29 */
-
 static struct android_usb_product usb_products[] = {
 #ifdef CONFIG_LGE_USB_GADGET_SUPPORT_FACTORY_USB
 	{
@@ -359,16 +352,6 @@ static struct android_usb_product usb_products[] = {
 #endif	
 	},
 #endif
-/* NRB_CHANGES_S [myoungkim@nuribom.com] 2011-05-29 */
-	{
-		.product_id = 0x61A6,
-		.num_functions = ARRAY_SIZE(usb_functions_portlock),
-		.functions = usb_functions_portlock,
-#ifdef CONFIG_LGE_USB_GADGET_FUNC_BIND_ONLY_INIT
-		.unique_function = UMS,
-#endif			
-	},
-/* NRB_CHANGES_E [myoungkim@nuribom.com] 2011-05-29 */	
 };
 
 /* [yk.kim@lge.com] 2010-12-28, ums sysfs enable */
@@ -559,6 +542,42 @@ static struct platform_device *devices[] __initdata = {
 };
 
 extern struct sys_timer msm_timer;
+
+#if 1	//def LG_FW_USB_ACCESS_LOCK
+extern int user_diag_enable;
+int get_usb_lock(void)
+{
+	extern int lg_get_usb_lock_state(void);
+
+	if (lg_get_usb_lock_state())
+		user_diag_enable = 0;
+	else
+		user_diag_enable = 1;
+
+	return user_diag_enable;
+};
+
+void set_usb_lock(int lock)
+{
+	extern int lg_set_usb_lock_state(int lock);
+
+	lg_set_usb_lock_state(lock);
+
+	if (lock)
+		user_diag_enable = 0;
+	else
+		user_diag_enable = 1;
+}
+
+void get_spc_code(char * spc_code)
+{
+	extern void lg_get_spc_code(char * spc_code);
+	lg_get_spc_code(spc_code);
+
+	return;
+	
+}
+#endif
 
 /* LGE_CHANGES_S [moses.son@lge.com] 2011-02-09, need to check LT cable type */
 int get_msm_cable_type(void)

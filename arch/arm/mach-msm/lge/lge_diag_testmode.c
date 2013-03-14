@@ -34,6 +34,9 @@ extern int diag_event_log_end(void);
 extern void set_operation_mode(boolean isOnline);
 extern struct input_dev* get_ats_input_dev(void);
 extern int boot_info;
+// LGE_S, FOTA IDCHECK, 20110824
+extern int fota_id_check;
+// LGE_E, FOTA IDCHECK, 20110824
 /* ==========================================================================
    ===========================================================================*/
 
@@ -53,6 +56,84 @@ struct statfs_local {
 
 /* ==========================================================================
    ===========================================================================*/
+#ifdef CONFIG_MACH_MSM7X27_GELATO_DOP   
+#define SECURITY_BINARY_CODE	45
+#else
+#define SECURITY_BINARY_CODE	55
+#endif
+
+PACK (void *)LGF_TFSBProcess (
+			PACK (void	*)req_pkt_ptr,	/* pointer to request packet  */
+			uint16		pkt_len )			  /* length of request packet	*/
+{
+	DIAG_TF_SB_F_req_type *req_ptr = (DIAG_TF_SB_F_req_type *) req_pkt_ptr;
+	DIAG_TF_SB_F_rsp_type *rsp_ptr;
+	unsigned int rsp_len;
+
+	extern void set_usb_lock(int lock);
+
+	if(req_ptr->seccode != SECURITY_BINARY_CODE)
+	{
+		set_usb_lock(1);
+	}
+
+	rsp_len = sizeof(DIAG_TF_SB_F_rsp_type);
+	rsp_ptr = (DIAG_TF_SB_F_rsp_type *)diagpkt_alloc(DIAG_TF_SB_CMD_F, rsp_len);
+
+	rsp_ptr->cmd_code = req_ptr->cmd_code;	
+	return (rsp_ptr);
+}
+EXPORT_SYMBOL(LGF_TFSBProcess);   
+
+PACK (void *)LGF_TFProcess (
+			PACK (void	*)req_pkt_ptr,	/* pointer to request packet  */
+			uint16		pkt_len )			  /* length of request packet	*/
+{
+	DIAG_TF_F_req_type *req_ptr = (DIAG_TF_F_req_type *) req_pkt_ptr;
+	DIAG_TF_F_rsp_type *rsp_ptr;
+	unsigned int rsp_len;
+	extern int get_usb_lock(void);
+	extern void set_usb_lock(int lock);
+	extern void get_spc_code(char * spc_code);
+
+	rsp_len = sizeof(DIAG_TF_F_rsp_type);
+	rsp_ptr = (DIAG_TF_F_rsp_type *)diagpkt_alloc(DIAG_TF_CMD_F, rsp_len);
+	
+	switch(req_ptr->sub_cmd)
+	{
+		case TF_SUB_CHECK_PORTLOCK:
+			if (get_usb_lock())
+				rsp_ptr->result = TF_STATUS_PORT_UNLOCK;
+			else
+				rsp_ptr->result = TF_STATUS_PORT_LOCK;
+			break;
+
+		case TF_SUB_LOCK_PORT:
+			set_usb_lock(1);
+			rsp_ptr->result = TF_STATUS_SUCCESS;
+			break;
+
+		case TF_SUB_UNLOCK_PORT:
+		{
+			char spc_code[6];
+			
+			get_spc_code(spc_code);
+
+			if (memcmp((byte *)spc_code,req_ptr->buf.keybuf, PPE_UART_KEY_LENGTH )==0)
+			{
+				set_usb_lock(0);
+				rsp_ptr->result = TF_STATUS_SUCCESS;
+			}
+			else
+				rsp_ptr->result = TF_STATUS_FAIL;
+
+			break;
+		}
+	}
+
+	return (rsp_ptr);
+}
+EXPORT_SYMBOL(LGF_TFProcess);
 
 
 PACK (void *)LGF_TestMode (
@@ -438,12 +519,12 @@ void* LGF_PowerSaveMode(test_mode_req_type* pReq, DIAG_TEST_MODE_F_rsp_type* pRs
 	msleep(20);
 	switch(pReq->sleep_mode){
 		case SLEEP_MODE_ON:
-			LGF_SendKey(KEY_POWER);
+			LGF_SendKey(KEY_END);
 			break;
 		case AIR_PLAIN_MODE_ON:
 // LGE_CHANGE_S [myeonggyu.son@lge.com] add testmode cmd [START]
 #if 0
-			LGF_SendKey(KEY_POWER);
+			LGF_SendKey(KEY_END);
 #else
 			update_diagcmd_state(diagpdev, "FLIGHT_ON", pReq->sleep_mode);	
 #endif
@@ -671,6 +752,36 @@ void* LGF_TestModeManual(test_mode_req_type* pReq ,DIAG_TEST_MODE_F_rsp_type	*pR
 	pRsp->test_mode_rsp.manual_test = TRUE;
 	return pRsp;
 }
+// LGE_S, FOTA IDCHECK, 20110824
+void* LGF_TestModeFotaIDCheck(test_mode_req_type* pReq, DIAG_TEST_MODE_F_rsp_type *pRsp)
+{
+    if (diagpdev != NULL)
+    {
+        switch( pReq->fota_id_check)
+        {
+            case FOTA_ID_CHECK:
+                fota_id_check = 1;
+                update_diagcmd_state(diagpdev, "FOTAIDCHECK", 0);
+                msleep(500);
+
+                if(fota_id_check == 0)
+                    pRsp->ret_stat_code = TEST_OK_S;
+                else
+                    pRsp->ret_stat_code = TEST_FAIL_S;
+
+                break;
+
+            default:
+                pRsp->ret_stat_code = TEST_NOT_SUPPORTED_S;
+                break;
+        }
+    }
+    else
+        pRsp->ret_stat_code = TEST_FAIL_S;
+
+    return pRsp;
+}
+// LGE_E, FOTA IDCHECK, 20110824
 
 #ifndef SKW_TEST
 static unsigned char test_mode_factory_reset_status = FACTORY_RESET_START;
@@ -1527,5 +1638,7 @@ testmode_user_table_entry_type testmode_mstr_tbl[TESTMODE_MSTR_TBL_SIZE] =
 	{ TEST_MODE_MAC_READ_WRITE,    linux_app_handler,        ARM11_PROCESSOR },
 	/*90~	*/
 	{ TEST_MODE_DB_INTEGRITY_CHECK,		LGF_TestModeDBIntegrityCheck,	ARM11_PROCESSOR},
+	// LGE FOTA IDCHECK , 20110824
+    {TEST_MODE_FOTA_ID_CHECK,               LGF_TestModeFotaIDCheck,          ARM11_PROCESSOR},
 };
 

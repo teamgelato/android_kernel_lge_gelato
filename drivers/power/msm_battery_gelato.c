@@ -1031,7 +1031,8 @@ static ssize_t msm_batt_pif_show(struct device *dev, struct device_attribute *at
 	static int pif_value = -1;
 	static int kern_pif_value = -1;
 	extern int msm_get_manual_test_mode(void);
-	
+
+	// 110829, junsin.park@lge.com
 	// 이 함수가 호출되면, pif_value가 0 혹은 1의 값만 갖게 되므로 이후 호출되어도 pif value를 update하지 않습니다.
 	// 따라서 no cable, usb cable인 상태에서 이 함수가 호출되어 pif가 0이 되고, 이후 LT가 연결되어도 pif를 1로 update하지 않으므로, 
 	// 아래 부분은 항상 호출 되는 것이 맞습니다.
@@ -1053,9 +1054,7 @@ static ssize_t msm_batt_pif_show(struct device *dev, struct device_attribute *at
 			{
 #ifdef CONFIG_LGE_USB_GADGET_DRIVER
 				extern u16 product_id;
-				// msm_chg_LG_cable_type()에서 cable 인식에 실패하였을 경우 return되는 값은 unknow cable로 enum값은 1입니다.
-				// enum값은 modem쪽 poll_ta_id.h에 define되어 있으며, 1로 수정하는 것이 맞습니다.
-				if ((pif_value==/*LG_UNKNOWN_CABLE*/1 && msm_get_manual_test_mode()))
+				if (product_id == 0x6000 || (pif_value==/*LG_UNKNOWN_CABLE*/1 && msm_get_manual_test_mode()))
 					kern_pif_value = LG_FACTORY_CABLE_TYPE;
 #endif
 				break;

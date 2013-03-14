@@ -454,6 +454,12 @@ void diag_update_sleeping_process(int process_id)
 	mutex_unlock(&driver->diagchar_mutex);
 }
 
+// LGE_CHANGE_S moses.son@lge.com
+#if 1	//def LG_FW_USB_ACCESS_LOCK
+int user_diag_enable= 1;
+#endif
+// LGE_CHANGE_E moses.son@lge.com
+
 static int diag_process_apps_pkt(unsigned char *buf, int len)
 {
 	uint16_t start;
@@ -462,6 +468,14 @@ static int diag_process_apps_pkt(unsigned char *buf, int len)
 	int packet_type = 1;
 	unsigned char *temp = buf;
 
+#if 1	//def LG_FW_USB_ACCESS_LOCK
+	// LGE_CHANGE_S moses.son@lge.com
+	if (buf[0]!=0xA1 && user_diag_enable == 0)
+		return 0;
+#endif
+	// LGE_CHANGE_E moses.son@lge.com	
+
+		
 	/* event mask */
 	if ((*buf == 0x60) && (*(++buf) == 0x0)) {
 		diag_update_event_mask(buf, 0, 0);

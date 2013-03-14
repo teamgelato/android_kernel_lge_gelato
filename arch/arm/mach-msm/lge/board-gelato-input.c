@@ -51,7 +51,7 @@ static unsigned short pp2106_keycode[PP2106_KEYPAD_ROW][PP2106_KEYPAD_COL] =
 /*2*/{KEY_ENTER,   	  KEY_QUESTION,   KEY_L,		  KEY_O,		  KEY_SYM,    	  KEY_E,		  KEY_X,		  KEY_D},
 /*3*/{KEY_DOWN,	  	  KEY_M,		  KEY_K,		  KEY_I,		  KEY_SMILE,      KEY_W,		  KEY_Z,		  KEY_S},
 /*4*/{KEY_LEFT,	  	  KEY_N,		  KEY_J,		  KEY_U,		  KEY_RIGHTALT,	  KEY_Q,		  KEY_LEFTSHIFT,  KEY_A},
-/*5*/{KEY_DOTCOM, 	  KEY_B,		  KEY_H,		  KEY_Y,		  KEY_HOME, 	  KEY_SEARCH,	  KEY_MENU, 	  KEY_BACK},
+/*5*/{KEY_DOTCOM, 	  KEY_B,		  KEY_H,		  KEY_Y,		  KEY_MENU, 	  KEY_SEARCH,	  KEY_HOME, 	  KEY_BACK},
 /*6*/{KEY_UP, 	  	  KEY_DOT,		  KEY_RESERVED,   KEY_RESERVED,   KEY_RESERVED,   KEY_RESERVED,   KEY_RESERVED,   KEY_RESERVED},
 /*7*/{KEY_RESERVED,   KEY_RESERVED,   KEY_RESERVED,   KEY_RESERVED,   KEY_RESERVED,   KEY_RESERVED,   KEY_RESERVED,   KEY_RESERVED},
 };
@@ -106,8 +106,8 @@ static const unsigned short keypad_keymap_gelato[ARRAY_SIZE(keypad_col_gpios) * 
 #endif
 #endif
 	[KEYMAP_INDEX(0, 2)] = KEY_FOCUS,
-	[KEYMAP_INDEX(1, 0)] = KEY_MENU,
-	[KEYMAP_INDEX(1, 1)] = KEY_HOME,
+	[KEYMAP_INDEX(1, 0)] = KEY_HOME,
+	[KEYMAP_INDEX(1, 1)] = KEY_MENU,
 	[KEYMAP_INDEX(1, 2)] = KEY_CAMERA,
 	[KEYMAP_INDEX(2, 0)] = KEY_BACK,
 	[KEYMAP_INDEX(2, 1)] = KEY_SEARCH,

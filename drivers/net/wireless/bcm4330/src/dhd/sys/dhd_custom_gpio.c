@@ -150,7 +150,7 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 			WL_ERROR(("=========== WLAN placed in RESET ========\n"));
 
 /* LGE_CHANGE_S [yoohoo@lge.com] 2009-05-14, support start/stop */
-#if defined(CONFIG_LGE_BCM432X_PATCH)
+#if defined(CONFIG_LGE_BCM432X_PATCH) 
 #if defined(CONFIG_ARCH_MSM)
             if (gpio_get_value(CONFIG_BCM4330_GPIO_WL_RESET)) {
                 disable_irq(gpio_to_irq(CONFIG_BCM4330_GPIO_WL_RESET));

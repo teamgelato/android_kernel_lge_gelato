@@ -670,12 +670,17 @@ static void ecm_disable(struct usb_function *f)
 
 static void ecm_open(struct gether *geth)
 {
+#if 0
 	struct f_ecm		*ecm = func_to_ecm(&geth->func);
 
 	DBG(ecm->port.func.config->cdev, "%s\n", __func__);
 
 	ecm->is_open = true;
 	ecm_notify(ecm);
+#else
+	printk(KERN_ERR "%s !!!!!!!!!!!!!\n", __func__);
+	return;
+#endif
 }
 
 static void ecm_close(struct gether *geth)

@@ -105,6 +105,10 @@ module_param(code_partition_crc_ready, int, S_IWUSR | S_IRUGO);
 int total_crc_ready = 0;
 module_param(total_crc_ready, int, S_IWUSR | S_IRUGO);
 
+// LGE_S FOTA IDCHECK, 20110824
+int fota_id_check = 0;
+module_param(fota_id_check, int, S_IWUSR | S_IRUGO);
+// LGE_E FOTA IDCHECK, 20110824
 typedef struct {
         char ret[32];
 } testmode_rsp_from_diag_type;

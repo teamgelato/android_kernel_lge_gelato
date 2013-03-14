@@ -184,6 +184,12 @@ typedef enum
   AIR_PLAIN_MODE_ON
 }test_mode_sleep_mode_type;
 
+// LGE_S FOTA IDCHECK , 20110824
+typedef enum
+{
+	FOTA_ID_CHECK,
+}test_mode_req_fota_id_check_type;
+// LGE_E FOTA IDCHECK , 20110824
 /* LGE_FACTORY_TEST_MODE for Photo Sensor(ALC) */
 typedef enum
 {
@@ -363,6 +369,9 @@ typedef union
 #endif /*LG_FW_TEST_MODE_V7_1*/
 //----------------------------------------------------------------------------
 #endif
+// LGE_S FOTA IDCHECK , 20110824
+  test_mode_req_fota_id_check_type fota_id_check;
+// LGE_E FOTA IDCHECK , 20110824
 } test_mode_req_type;
 
 typedef struct diagpkt_header
@@ -555,6 +564,9 @@ typedef enum
   TEST_MODE_DB_INTEGRITY_CHECK=91,
   //[END]LGE_DB_CHECK: jaffrhee@lge.com 2010-08-02
   //
+  // LGE FOTA IDCHECK , 20110824
+  TEST_MODE_FOTA_ID_CHECK = 98,
+
   MAX_TEST_MODE_SUBCMD = 0xFFFF
   //TEST_MODE_CURRENT,
   //TEST_MODE_BREW_FILES,
@@ -605,5 +617,78 @@ typedef struct DIAG_TEST_MODE_KEY_F_rsp_tag {
   test_mode_ret_stat_type	ret_stat_code;
   char key_pressed_buf[MAX_KEY_BUFF_SIZE];
 } PACKED DIAG_TEST_MODE_KEY_F_rsp_type;
+
+// LGE_CHANGE_S moses.son@lge.com
+#if 1	//def LG_FW_USB_ACCESS_LOCK
+#define PPE_UART_KEY_LENGTH 6
+#define PPE_DES3_KEY_LENGTH 128
+
+typedef enum {
+  TF_SUB_CHECK_PORTLOCK = 0,
+  TF_SUB_LOCK_PORT,
+  TF_SUB_UNLOCK_PORT,
+  TF_SUB_KEY_VERIFY,  
+  TF_SUB_GET_CARRIER,
+  TF_SUB_PROD_FLAG_STATUS,  
+  TF_SUB_PROD_KEY_VERIFY,  
+} nvdiag_tf_sub_cmd_type;
+
+// oskwon 090606 : Lock 상태에서 SUB 커맨드 3개만 허용, 패킷 길이는 3가지 다 허용 
+typedef struct	
+{
+  byte cmd_code;                      /* Command code */
+  byte sub_cmd;                       /* Sub Command */
+} PACKED DIAG_TF_F_req_type1;
+
+typedef struct
+{
+  byte cmd_code;                      /* Command code */
+  byte sub_cmd;                       /* Sub Command */
+  byte keybuf[PPE_UART_KEY_LENGTH];   /* Uart Lock Key - 6 Digit */
+} PACKED DIAG_TF_F_req_type2;
+
+typedef struct
+{
+  byte cmd_code;                      /* Command code */
+  byte sub_cmd;                       /* Sub Command */
+  union {
+  byte keybuf[PPE_UART_KEY_LENGTH];   /* Uart Lock Key - 16 Digit */
+  byte probuf[PPE_DES3_KEY_LENGTH];   /* Production Key - 128 Byte */
+  } PACKED buf;
+} PACKED DIAG_TF_F_req_type;
+
+typedef struct
+{
+  byte cmd_code;                      /* Command code */ 
+  byte sub_cmd;                       /* Sub Command */
+  byte result;                        /* Status of operation */
+} PACKED DIAG_TF_F_rsp_type;
+
+typedef enum {
+  TF_STATUS_FAIL = 0,       	//Fail Unknown Reason
+  TF_STATUS_SUCCESS,        	//General Success
+  TF_STATUS_PORT_LOCK = 12,    	//TF_SUB_CHECK_PORTLOCK -> LOCK
+  TF_STATUS_PORT_UNLOCK,    	//TF_SUB_CHECK_PORTLOCK -> UNLOCK
+  TF_STATUS_VER_KEY_OK,     	//TF_SUB_KEY_VERIFY -> OK 
+  TF_STATUS_VER_KEY_NG,     	//TF_SUB_KEY_VERIFY -> NG
+  TF_STATUS_P_FLAG_ENABLE,   	//PRODUCTION FLAG 1 
+  TF_STATUS_P_FLAG_DISABLE,		//PRODUCTION FLAG 0
+  TF_STATUS_VER_P_KEY_OK,		// PPE KEY OK
+  TF_STATUS_VER_P_KEY_NG,		// PPE KEY NG
+} DIAG_TF_F_sub_cmd_result_type;
+
+typedef struct
+{
+  byte cmd_code;                      /* Command code */
+  dword seccode;                       /* security code */
+} PACKED DIAG_TF_SB_F_req_type;
+
+typedef struct
+{
+  byte cmd_code;                      /* Command code */ 
+} PACKED DIAG_TF_SB_F_rsp_type;
+
+#endif
+// LGE_CHANGE_E moses.son@lge.com
 
 #endif /* LG_DIAG_TESTMODE_H */

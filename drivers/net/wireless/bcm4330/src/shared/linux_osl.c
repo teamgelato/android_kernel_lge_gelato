@@ -631,8 +631,8 @@ osl_pktfree_static(osl_t *osh, void *p, bool send)
 			down(&bcm_static_skb->osl_pkt_sem);
 			bcm_static_skb->pkt_use[i] = 0;
 			up(&bcm_static_skb->osl_pkt_sem);
-			
-			
+
+
 			return;
 		}
 	}

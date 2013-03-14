@@ -273,15 +273,7 @@ void android_set_device_class(u16 pid);
 #endif
 
 static void android_set_default_product(int product_id);
-/*NRB_CHANGES_S [myoungkim@nuribom.com] 2011-07-15 HiddenMenu : add PORT */
-//adb enable after boot complete.
-extern int get_adb_demon_started(void);
 
-int get_pid_switch_flag(void)
-{
-	return switch_flag;
-}
-/*NRB_CHANGES_E [myoungkim@nuribom.com] 2011-07-15 HiddenMenu : add PORT */	
 void android_usb_set_connected(int connected)
 {
 	if (_android_dev && _android_dev->cdev && _android_dev->cdev->gadget) {
@@ -429,15 +421,8 @@ static int get_product_id(struct android_dev *dev)
 	int i;
 
 #ifdef CONFIG_LGE_USB_GADGET_SUPPORT_FACTORY_USB
-    if(product_id == lg_factory_pid){
+    if(product_id == lg_factory_pid)
         return product_id;
-    	}
-/*NRB_CHANGES_S [myoungkim@nuribom.com] 2011-05-29 HiddenMenu : add PORT */	
-	else if (product_id ==  0x61A6)
-    	{
-    		return product_id;
-	}
-/*NRB_CHANGES_E [myoungkim@nuribom.com] */	
 	else if(p) {
 #else
 	if (p) {
@@ -672,10 +657,8 @@ void android_register_function(struct android_usb_function *f)
  * android_set_function_mask() - enables functions based on selected pid.
  * @up: selected product id pointer
  *
- * This function enables functions related with selected product id.extern int get_deb_demon_started(void);
+ * This function enables functions related with selected product id.
  */
-
-
 static void android_set_function_mask(struct android_usb_product *up)
 {
 	int index, found = 0;
@@ -683,16 +666,12 @@ static void android_set_function_mask(struct android_usb_product *up)
 
 	list_for_each_entry(func, &android_config_driver.functions, list) {
 		/* BEGIN:0012045 [yk.kim@lge.com] 2010-12-09, fix adb connect fail when CTS test */
-		/*NRB_CHANGES_S [myoungkim@nuribom.com] 2011-07-15 HiddenMenu : add PORT */
-		//adb enable after boot complete.
-		//if (!switch_flag)  
-		if(!get_adb_demon_started() || !switch_flag)
+		if (!switch_flag)
 		{
 		/* adb function enable/disable handled separetely */
 		if (!strcmp(func->name, "adb"))
 			continue;
 		}
-		/*NRB_CHANGES_E [myoungkim@nuribom.com]  */
 		/* END:0011785 [yk.kim@lge.com] 2010-12-09 */
 		
 		for (index = 0; index < up->num_functions; index++) {
@@ -778,7 +757,6 @@ int android_switch_composition(u16 pid)
 	int ret = -EINVAL;
 	switch_flag = 1;
 
-	printk(KERN_ERR "%s : pid = %lx\n", __func__,pid);
 #ifdef CONFIG_LGE_USB_GADGET_FUNC_BIND_ONLY_INIT
     android_set_device_class(pid);
 #endif

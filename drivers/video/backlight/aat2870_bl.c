@@ -67,7 +67,7 @@
 #endif
 
 #ifdef CONFIG_MACH_MSM7X27_GELATO_DOP
-#define LCD_LED_MAX 16 /* 15.48mA */
+#define LCD_LED_MAX 21//16 /* 15.48mA */
 #define LCD_LED_MIN 0  /* 0.48mA */
 #else
 #if defined(HW_LCD_TUNNING_SCENARIO_1)

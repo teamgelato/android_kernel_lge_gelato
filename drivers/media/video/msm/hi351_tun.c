@@ -1455,12 +1455,15 @@ static int isx005_check_af_lock(void)
 			(rdata != AF_CHECK_RET_SUCCESS && i == MAX_AF_WAIT_COUNT))
 		{
 			printk(KERN_ERR "[smiledice] [Step #3] AF FAIL ==> CANCEL FOCUS !\n");
+			mdelay(50);
 			rc = isx005_cancel_focus(prev_af_mode);
 			if (rc < 0) 
 			{
 				printk(KERN_ERR "[smiledice] [Step #3] FAIL: AF Initialize Fail\n", __func__);
 			}
 			
+			mdelay(166); //avoid unfocused capture preview (1frame delay + margin)
+
 			*lock = CFG_AF_UNLOCKED; //0: focus fail or 2: during focus
 
 			printk(KERN_ERR "[smiledice] << %s END #3 : FAIL: AF Done Check (rdata (0x%x) != 0x0a)(rc: %d)\n", __func__, rdata, rc);
@@ -1484,9 +1487,7 @@ static int isx005_check_af_lock(void)
 				printk(KERN_ERR "[smiledice] [Step #4] CHECK FocusValue: %x\n", rdata);
 			#endif
 
-			mdelay(166); //avoid unfocused capture preview (1frame delay + margin)
-
-			#if 1 //Lens Position Check
+			#if 0 //Lens Position Check
 				printk(KERN_ERR "[smiledice] [Step #4] Lens Position Check\n");
 				//4. Read LensPosition
 				rdata = 0;
@@ -1520,17 +1521,21 @@ static int isx005_check_af_lock(void)
 					printk(KERN_ERR "[smiledice] [Step #5] Filter AF false-positive Succeed @ <7Cm (rdata: 0x%04x)\n", rdata);
 
 					printk(KERN_ERR "[smiledice] [Step #5] AF FAIL ==> CANCEL FOCUS !\n");
+					mdelay(50);
 					rc = isx005_cancel_focus(prev_af_mode);
 					if (rc < 0) {
 						printk(KERN_ERR "[smiledice] [Step #5] FAIL: AF Initialize Fail\n", __func__);
 					}
 			
+					mdelay(200); //avoid unfocused capture preview (1frame delay + margin)
 					*lock = CFG_AF_UNLOCKED;
 				}
 				else {
+					mdelay(200); //avoid unfocused capture preview (1frame delay + margin)
 					*lock = CFG_AF_LOCKED;  // success
 				}
 			#else
+					mdelay(166); //avoid unfocused capture preview (1frame delay + margin)
 					*lock = CFG_AF_LOCKED;  // success
 			#endif
 

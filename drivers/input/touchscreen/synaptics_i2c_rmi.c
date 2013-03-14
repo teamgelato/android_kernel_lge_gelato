@@ -19,6 +19,7 @@ PARTICULAR PURPOSE.  See the * GNU General Public License for more details. * */
 #include <mach/gpio.h>
 #include <linux/slab.h>
 //#include <linux/i2c/twl4030.h>
+#include <linux/jiffies.h>
 
 #ifdef SYNAPTICS_FW_REFLASH
 #include "synaptics_reflash.h"
@@ -34,22 +35,21 @@ PARTICULAR PURPOSE.  See the * GNU General Public License for more details. * */
 #include <linux/input.h>
 #include <linux/syscalls.h>
 #include <linux/delay.h>
-
 #endif
+
 #define DOP_TOUCH 1
 #define HW_REVA 0
 #define HW_REVB 1
- 
 
 #ifdef CONFIG_MACH_MSM7X27_GELATO_DOP//gelato window change
 #define SYNAPTICS_WINDOW_CHANGE DOP_TOUCH
 #else
-#if defined(CONFIG_LGE_PCB_REV_A)
+  #if defined(CONFIG_LGE_PCB_REV_A)
 #define SYNAPTICS_WINDOW_CHANGE HW_REVA
-#else
+  #else
 #define SYNAPTICS_WINDOW_CHANGE HW_REVB
-#endif
-#endif
+  #endif // defined(CONFIG_LGE_PCB_REV_A)
+#endif // CONFIG_MACH_MSM7X27_GELATO_DOP
 
 #ifdef SYNAPTICS_FW_REFLASH
 #define FW_REFLASH_SUCCEED 0
@@ -61,24 +61,26 @@ PARTICULAR PURPOSE.  See the * GNU General Public License for more details. * */
 #define SHOW_MSG(args...)
 #endif
 
- #ifdef SYNAPTICS_TOUCH_DEBUG
- #define DEBUG_MSG(args...)	printk(KERN_INFO args)
- #else
- #define DEBUG_MSG(args...)
- #endif
+#ifdef SYNAPTICS_TOUCH_DEBUG
+#define DEBUG_MSG(args...)	printk(KERN_INFO args)
+#else
+#define DEBUG_MSG(args...)
+#endif
 
- #ifdef SYNAPTICS_TOUCH_ERR
+#ifdef SYNAPTICS_TOUCH_ERR
 #define ERR_MSG(args...)	printk(KERN_ERR args)
- #else
+#else
 #define ERR_MSG(args...)
- #endif
+#endif
+
 #define SYNAPTICS_TS_REPORTING_RATE_ENHANCED /* 50Hz -> 60Hz */
 #define SYNAPTICS_TS_MELTING_MODE2 // 0612
 #define SYNAPTICS_TS_MELTING_MODE3 //0629
+//#define SYNAPTICS_TS_AUTOMELTING_MODE
 #define SYNAPTICS_TS_POLLING_TIME 	1 /* polling time(msec) when touch was pressed */ 
 
 #define INT_STATUS_REG				0x14
-#if (SYNAPTICS_WINDOW_CHANGE >HW_REVA) //gelato window change
+#if (SYNAPTICS_WINDOW_CHANGE > HW_REVA) //gelato window change
 #define SYNAPTICS_INT_REG			0x26
 #define SYNAPTICS_CONTROL_REG		0x25
 #define REPORT_MODE_2D				0x27
@@ -96,11 +98,9 @@ PARTICULAR PURPOSE.  See the * GNU General Public License for more details. * */
 #define GESTURE_ENABLE1_REG_M       0x80
 #define GESTURE_ENABLE2_REG_M 		0xF0
 
-
-
-#ifdef SYNAPTICS_MELTINGMODE
+  #ifdef SYNAPTICS_MELTINGMODE
 #define SYNAPTICS_MELTING_REG	0xF0
-#endif
+  #endif
 
 #define SYNAPTICS_INT_FLASH		1<<0
 #define SYNAPTICS_INT_STATUS 	1<<1
@@ -109,18 +109,18 @@ PARTICULAR PURPOSE.  See the * GNU General Public License for more details. * */
 #define SYNAPTICS_CONTROL_SLEEP 	1<<0
 #define SYNAPTICS_CONTROL_NOSLEEP	1<<2
 
-#ifdef SYNAPTICS_MELTINGMODE
+  #ifdef SYNAPTICS_MELTINGMODE
 #define SYNAPTICS_MELTING_NO		0
 #define SYNAPTICS_MELTING_MELT		1<<0
 #define SYNAPTICS_MELTING_AUTO		1<<1
-#endif
+  #endif
 
 #define FINGER_MAX 2
 #define START_ADDR      0x13
 #define PRODUCT_ID_STRING_NUM	11
 #define CMD_REG_BLOCK_NUM		41 //38
 
-#else
+#else // (SYNAPTICS_WINDOW_CHANGE == HW_REVA)
 
 #define SYNAPTICS_INT_REG			0x21
 #define SYNAPTICS_CONTROL_REG		0x20
@@ -134,9 +134,9 @@ PARTICULAR PURPOSE.  See the * GNU General Public License for more details. * */
 
 #define QUERY_BASE_REG				0xE3
 
-#ifdef SYNAPTICS_MELTINGMODE
+  #ifdef SYNAPTICS_MELTINGMODE
 #define SYNAPTICS_MELTING_REG	0xF0
-#endif
+  #endif
 
 #define SYNAPTICS_INT_FLASH		1<<0
 #define SYNAPTICS_INT_STATUS 	1<<1
@@ -145,28 +145,32 @@ PARTICULAR PURPOSE.  See the * GNU General Public License for more details. * */
 #define SYNAPTICS_CONTROL_SLEEP 	1<<0
 #define SYNAPTICS_CONTROL_NOSLEEP	1<<2
 
-#ifdef SYNAPTICS_MELTINGMODE
+  #ifdef SYNAPTICS_MELTINGMODE
 #define SYNAPTICS_MELTING_NO		0
 #define SYNAPTICS_MELTING_MELT		1<<0
 #define SYNAPTICS_MELTING_AUTO		1<<1
-#endif
+  #endif
 
 #define FINGER_MAX 2
 #define START_ADDR      0x13
 #define PRODUCT_ID_STRING_NUM	11
 #define CMD_REG_BLOCK_NUM		38
-#endif
+#endif // (SYNAPTICS_WINDOW_CHANGE > HW_REVA)
+
 /************************************/
 /******* enum ***********************/
+
 typedef enum {
 	SYNAPTICS_2000 = 0,
 	SYNAPTICS_2100,
 	SYNAPTICS_3000,
 };
+
 /************************************/
 
 /***********************************************************/
 /**************** structure ***********************************/
+
 struct synaptics_ts_data {
 	uint16_t addr;
 	struct i2c_client *client;
@@ -217,8 +221,8 @@ typedef struct									// synaptics 21000
 	unsigned char Gesture_Flags0_reg;			//0x20
 	unsigned char Gesture_Flags1_reg;			//0x21
  } ts_sensor_data;
-#if (SYNAPTICS_WINDOW_CHANGE >HW_REVA)
 
+#if (SYNAPTICS_WINDOW_CHANGE > HW_REVA)
 typedef struct 									// synaptics 2000	// synaptics 21000 // gelato window change
 {
 	unsigned char device_command;				//0x58				//0x5C			//0x70	
@@ -263,7 +267,9 @@ typedef struct 									// synaptics 2000	// synaptics 21000 // gelato window ch
 	unsigned char gesture_query2_2d;												//0x97
 	unsigned char miscellaneous_2d;													//0x98
 }ts_sensor_command;
-#else
+
+#else // (SYNAPTICS_WINDOW_CHANGE == HW_REVA)
+
 typedef struct 									// synaptics 2000	// synaptics 21000 // gelato window change
 {
 	unsigned char device_command;				//0x58				//0x5C			//0x70	
@@ -305,15 +311,14 @@ typedef struct 									// synaptics 2000	// synaptics 21000 // gelato window ch
 	unsigned char maximum_electorde_2d;			//0x7C				//0x80 //0x94
 	unsigned char absolute_query_2d;			//0x7D				//0x81 //0x95
 }ts_sensor_command;
-#endif
-
-
+#endif // (SYNAPTICS_WINDOW_CHANGE > HW_REVA)
 
 typedef struct {
 	unsigned char finger_count;
 	int X_position[FINGER_MAX];
 	int Y_position[FINGER_MAX];
 } ts_finger_data;
+
 /***********************************************************/
 
 /***********************************************************************************/
@@ -348,12 +353,17 @@ typedef struct {
 // 2nd and 3rd bit : 0x00 - Normal Operation, 0x01 - Sensor Sleep
 #define TS_SNTS_GET_SLEEP_MODE(device_control_reg) \
 		(device_control_reg&0x07)
-/***********************************************************************************/
-extern int msm_get_manual_test_mode(void);
 
+/***********************************************************************************/
+// LGE_CHANGE_S maual test mode [GELATO] [START]
+extern int msm_get_manual_test_mode(void);
+// LGE_CHANGE_S maual test mode [GELATO] [END]
 /****************************************************************/
+
 /**************** STATIC VARIABLE *********************************/
+// LGE_CHANGE_S maual test mode [GELATO] [START]
 static int lge_manual_test_mode = 0; //manual_mode
+// LGE_CHANGE_S maual test mode [GELATO] [END]
 
 static struct workqueue_struct *synaptics_wq;
 #ifdef SYNAPTICS_FW_REFLASH
@@ -363,7 +373,7 @@ EXPORT_SYMBOL(is_need_forced_update);
 int is_fw_reflash = 0;
 EXPORT_SYMBOL(is_fw_reflash);
 static int power_status = 0;
-#endif
+#endif // SYNAPTICS_FW_REFLASH
 static ts_sensor_data ts_reg_data={0};
 static ts_finger_data curr_ts_data;
 static ts_sensor_command ts_cmd_reg_data={0};
@@ -380,26 +390,26 @@ static int is_first_release_event = 1;
 static ts_finger_data save_ts_data;
 static char meltingmode = SYNAPTICS_MELTING_MELT; //default Melt mode
 static char firsttap = 0; // first tap after release
-
-#endif
+#endif // SYNAPTICS_MELTINGMODE
 #ifdef SYNAPTICS_TS_REPORTING_RATE_ENHANCED
 static int touch2_prestate = 0;
 static int touch1_prestate = 0;
-#endif
+#endif // SYNAPTICS_TS_REPORTING_RATE_ENHANCED
 u8 gesture_data1,gesture_data2=0x0;
 #if defined( SYNAPTICS_TS_MELTING_MODE2)
 static char numfinger=0;
 static char tapcount=0;
+static char reportcnt=0;
 static int mode =1;
-static char fscc = 0;
-char fs0=0;
-char zigcntx=0; 
-char zigcnty=0;
-char direction=0;
-char distance=0;
+//static char fscc = 0;
+//char fs0=0;
+//char zigcntx=0; 
+//char zigcnty=0;
+//char direction=0;
+//char distance=0;
 int x, y, prex, prey, firstx, firsty;
-#endif
-
+static unsigned long pushed_jiffies=0;
+#endif // defined( SYNAPTICS_TS_MELTING_MODE2)
 
 EXPORT_SYMBOL(max_x);
 EXPORT_SYMBOL(max_y);
@@ -407,13 +417,13 @@ EXPORT_SYMBOL(max_y);
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void synaptics_ts_early_suspend(struct early_suspend *h);
 static void synaptics_ts_late_resume(struct early_suspend *h);
-#endif
+#endif // CONFIG_HAS_EARLYSUSPEND
 
 // LGE_CHANGE_S [myeonggyu.son@lge.com] [2011.02.25] [GELATO] enable or disable key logging status of slate [START]
 #ifdef CONFIG_LGE_DIAG
 extern int key_touch_logging_status;
 extern void mtc_send_touch_log_packet(unsigned long touch_x, unsigned long touch_y, unsigned long status);
-#endif
+#endif // CONFIG_LGE_DIAG
 // LGE_CHANGE_E [myeonggyu.son@lge.com] [2011.02.25] [GELATO] enable or disable key logging status of slate [END]
 
 // LGE_CHANGE_S [myeonggyu.son@lge.com] [2011.02.25] [GELATO] UTS function -diag key press [START]
@@ -439,19 +449,136 @@ void Send_Touch( unsigned int x, unsigned int y)
 	return;
 }
 EXPORT_SYMBOL(Send_Touch);
-#endif
+#endif // CONFIG_LGE_DIAG
 // LGE_CHANGE_S [myeonggyu.son@lge.com] [2011.02.25] [GELATO] UTS function -diag key press [END]
 
-#ifdef SYNAPTICS_TS_MELTING_MODE3
-void NoMeltChange(struct synaptics_ts_data *ts)
+#ifdef SYNAPTICS_ESD_RECOVERY
+static void Synaptics_ts_recovery(struct synaptics_ts_data *ts)
 {
 	int ret;
-    
+
+	if (ts->use_irq)
+		disable_irq(ts->client->irq);
+	else
+		hrtimer_cancel(&ts->timer);
+
+	msleep(100);
+
+	if (ts->power) {
+		ret = ts->power(0);
+		if (ret < 0)
+			ERR_MSG("synaptics_ts_resume power off failed\n");
+	}
+
+	msleep(50);
+
+	if (ts->power) {
+		ret = ts->power(1);
+		if (ret < 0)
+			ERR_MSG("synaptics_ts_resume power on failed\n");
+	}
+
+	msleep(400);
+
+#ifdef SYNAPTICS_MELTINGMODE
+	is_first_release_event = 1;
+	meltingmode = SYNAPTICS_MELTING_MELT;
+	firsttap = 0;
+#endif // SYNAPTICS_MELTINGMODE
+#ifdef SYNAPTICS_TS_MELTING_MODE2
+	numfinger = 0; 
+	tapcount = 0;
+	reportcnt =0;
+	mode = 1;
+#endif // SYNAPTICS_TS_MELTING_MODE2
+
+	if (ts->use_irq)
+		enable_irq(ts->client->irq);
+	else
+		hrtimer_start(&ts->timer, ktime_set(1, 0), HRTIMER_MODE_REL);
+
+	SHOW_MSG("Synaptics_ts_recovery : recovery action completed\n");
+}
+#endif // SYNAPTICS_ESD_RECOVERY
+
+#ifdef SYNAPTICS_TS_MELTING_MODE3
+static inline void NoMeltChange(struct synaptics_ts_data *ts)
+{
+	int ret;
+
 	x = curr_ts_data.X_position[0];
     y = curr_ts_data.Y_position[0];
 	DEBUG_MSG(">>>>ts_reg_data.finger_state_reg =0x%x\n", ts_reg_data.finger_state_reg);
-	DEBUG_MSG(">>>> mode   = 0x%x, ,fs0 = %d\n", mode,fs0);
-	
+
+  #if 1
+	if(mode > 0)
+	{
+		if((ts_reg_data.finger_state_reg == 0))//No finger
+		{
+			if((numfinger==1) & (reportcnt > 6)) 
+			{
+				if((abs(firstx - x) > 200) | (abs(firsty - y) >200)) //correspond to 1cm
+				{
+					if(mode==1)
+					{
+						ret = i2c_smbus_write_byte_data(ts->client, 0xf0, SYNAPTICS_MELTING_NO); //set no melting
+						mode = 0;
+						SHOW_MSG(">>> No melt mode~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+						tapcount=0;
+					}
+					else if(mode==2)
+					{
+						if(tapcount>1)
+						{
+							ret = i2c_smbus_write_byte_data(ts->client, 0xf0, SYNAPTICS_MELTING_NO); //set no melting
+							mode = 0;
+							SHOW_MSG(">>>tapcount %d No melt mode~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n",tapcount);
+							tapcount=0;
+						}
+					}
+				}
+			}
+
+			if(numfinger==0) 
+			{
+				mode=2;
+				tapcount=0;
+			}
+
+			numfinger=0;
+			reportcnt=0;
+		}
+		else if((ts_reg_data.finger_state_reg == 1))// 1 finger
+		{
+			if(++reportcnt > 10) reportcnt=10;
+			if(numfinger==0)
+			{
+				numfinger=1;
+				firstx=x; firsty=y;
+				prex=x; prey=y;
+				tapcount++;
+			}
+			else if(numfinger==1)
+			{
+				if((abs(prex-x) > 500) | (abs(prey-y) > 500)) 
+				{
+					numfinger=2;
+					tapcount=0;
+					mode=2;
+				}
+				prex=x; prey=y;
+			}
+		}
+		else
+		{
+			numfinger=2; // more than 2 finger
+			tapcount=0;
+			mode=2;
+		}
+	}
+
+  #else
+
 	if(mode == 1)
 	{
            if((ts_reg_data.finger_state_reg == 0)) //No finger
@@ -496,17 +623,18 @@ void NoMeltChange(struct synaptics_ts_data *ts)
 				numfinger=2; // more than 2 finger
 		   }
 	}
+  #endif
 	return;
 }	
 
-#else
-#ifdef SYNAPTICS_TS_MELTING_MODE2
-void NoMeltChange(struct synaptics_ts_data *ts)
+#else // !SYNAPTICS_TS_MELTING_MODE3
+
+  #ifdef SYNAPTICS_TS_MELTING_MODE2
+static inline void NoMeltChange(struct synaptics_ts_data *ts)
 {
-	
 	char zigoffset = 25;
 	int ret;
-    
+
 	x = curr_ts_data.X_position[0];
     y = curr_ts_data.Y_position[0];
 	DEBUG_MSG(">>>>ts_reg_data.finger_state_reg =0x%x\n", ts_reg_data.finger_state_reg);
@@ -519,7 +647,6 @@ void NoMeltChange(struct synaptics_ts_data *ts)
 			{
 				if(++tapcount > 2) //3번 1 finger tapping 일 경우 No melt 변경
 				{
-					
 					ret = i2c_smbus_write_byte_data(ts->client, 0xf0, SYNAPTICS_MELTING_NO); //set no melting
 					mode = 2;
 					fscc = 0;
@@ -529,19 +656,19 @@ void NoMeltChange(struct synaptics_ts_data *ts)
 				}
 				DEBUG_MSG(">>>Tap count = %d\n", tapcount);
 			}
-			numfinger=0;
+			numfinger = 0;
 		}
 		else if((ts_reg_data.finger_state_reg == 1)) // 1 finger
 		{
 			DEBUG_MSG(">>> numfinger = %d, ts_reg_data.finger_state_reg=%d",numfinger,ts_reg_data.finger_state_reg);
-			if(numfinger==0)
+			if(numfinger == 0)
 			{
-				numfinger=1;
+				numfinger = 1;
 			}
 		}
 		else
 		{
-			numfinger=2; // more than 2 finger
+			numfinger = 2; // more than 2 finger
 			tapcount = 0;
 		}
 	}
@@ -552,20 +679,19 @@ void NoMeltChange(struct synaptics_ts_data *ts)
 			DEBUG_MSG(">>>fs0=%d,fscc=%d",fs0,fscc);
 			if(fs0 == 0) //finger status가 0으로 연속 2번 이상일 경우 melt 로 변경
 			{
-				
 				ret = i2c_smbus_write_byte_data(ts->client, SYNAPTICS_MELTING_REG, SYNAPTICS_MELTING_MELT); //set melting
 				mode = 1;
 				tapcount = 2;
 				SHOW_MSG(">>>mode=2 Melting mode fs0!!!!!\n");
 			}
-			fscc=0;
+
+			fscc = 0;
 			fs0 = 0;
-			zigcntx=0; 
-			zigcnty=0;
+			zigcntx = 0; 
+			zigcnty = 0;
 
 			if((((direction == 1) | (direction == -1)) & (distance > 3))) //값은 방향으로만 drag 됐을 경우 No melt fix
 			{
-				
 				ret = i2c_smbus_write_byte_data(ts->client,SYNAPTICS_MELTING_REG, SYNAPTICS_MELTING_NO); //set no melting
 				mode = 0;
 				SHOW_MSG(">>>mode=0 No melt fix ~~~~~~~~~~\n");
@@ -602,7 +728,6 @@ void NoMeltChange(struct synaptics_ts_data *ts)
 
 				if((zigcntx > 5) | (zigcnty > 5)) //좌표 증가, 감소가 6번 이상 반복될 경우 Melting 변경
 				{
-					
 					//ret = i2c_smbus_write_byte_data(ts->client, SYNAPTICS_MELTING_REG, SYNAPTICS_MELTING_MELT); //set melting
 					//mode = 1;
 					zigcntx=0; zigcnty=0;
@@ -637,7 +762,6 @@ void NoMeltChange(struct synaptics_ts_data *ts)
 		{
 			if(fscc++ > 5) //finger status 값이 6번 이상 바뀔 경우 melting 변경
 			{
-				
 				//ret = i2c_smbus_write_byte_data(ts->client, SYNAPTICS_MELTING_REG, SYNAPTICS_MELTING_MELT); //set melting
 				//mode = 1;
 				fscc =0;
@@ -647,11 +771,12 @@ void NoMeltChange(struct synaptics_ts_data *ts)
 			DEBUG_MSG(">>>fscc = %d,fs0=%d\n", fscc,fs0);
 		}
 	}	
-	
+
 	return;
 }
-#endif
-#endif
+  #endif // SYNAPTICS_TS_MELTING_MODE2
+#endif // SYNAPTICS_TS_MELTING_MODE3
+
 /****************************************************************/
 
 #ifdef SYNAPTICS_FW_REFLASH
@@ -684,7 +809,7 @@ static void synaptics_ts_fw_reflash_work_func(struct work_struct *work)
 	/* disable irq */
 	if (ts->use_irq)
 		disable_irq(ts->client->irq);
-	
+
 	if(SynaDoReflash(ts->client, ts->fw_revision) == FW_REFLASH_SUCCEED)
 	{
 		ERR_MSG("synaptics_ts_fw_reflash_work_func : SynaDoReflash succeed!\n");
@@ -713,7 +838,7 @@ static void synaptics_ts_fw_reflash_work_func(struct work_struct *work)
 			ERR_MSG("i2c_smbus_read_word_data failed\n");
 		}
 		max_y = (ret & 0xFF);
-				
+
 		ret = i2c_smbus_read_word_data(ts->client, MAX_Y_POS_HIGH_REG);
 		if (ret < 0) {
 			ERR_MSG("i2c_smbus_read_word_data failed\n");
@@ -736,10 +861,10 @@ static void synaptics_ts_fw_reflash_work_func(struct work_struct *work)
 	/* enable irq */
 	if (ts->use_irq)
 		enable_irq(ts->client->irq);
-	
+
 	return;
 }
-#endif
+#endif // SYNAPTICS_FW_REFLASH
 
 static void synaptics_ts_work_func(struct work_struct *work)
 {
@@ -799,19 +924,21 @@ static void synaptics_ts_work_func(struct work_struct *work)
 	
 		DEBUG_MSG("synaptics_ts_new_work_func : death from ESD attack --> recovery action completed\n");
 	}
-#endif
+#endif // SYNAPTICS_ESD_RECOVERY
 
 	if(int_mode & SYNAPTICS_INT_ABS0)
 	{
 		while (1) 
 		{
 			i2c_smbus_read_i2c_block_data(ts->client, START_ADDR, sizeof(ts_reg_data), &ts_reg_data);
+			if (ret < 0)
+				ERR_MSG("synaptics_ts_work_func: i2c_smbus_read_i2c_block_data failed START_ADDR\n");
 
 			finger0_status = TS_SNTS_GET_FINGER_STATE_0(ts_reg_data.finger_state_reg);
 			finger1_status = TS_SNTS_GET_FINGER_STATE_1(ts_reg_data.finger_state_reg);
-			
+
 			printk("synaptics_ts_work_func : finger0_status = 0x%x, finger1_status = 0x%x\n",finger0_status,finger1_status);
-			
+
 			if((finger0_status == 0) && (ts_pre_state == 0)) 
 			{
 				DEBUG_MSG("synaptics_ts_work_func: Synaptics Touch is is the idle state\n");
@@ -836,7 +963,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 
 				tmp_x = (int)TS_SNTS_GET_X_POSITION(ts_reg_data.X_high_position_finger0_reg, ts_reg_data.XY_low_position_finger0_reg);
 				tmp_y = (int)TS_SNTS_GET_Y_POSITION(ts_reg_data.Y_high_position_finger0_reg, ts_reg_data.XY_low_position_finger0_reg);
-				
+
 				curr_ts_data.X_position[0] = tmp_x;
 		  		curr_ts_data.Y_position[0] = tmp_y;
 
@@ -844,7 +971,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 					width0 = (ts_reg_data.XY_width_finger0_reg & 240) >> 4;
 				else
 					width0 = ts_reg_data.XY_width_finger0_reg & 15;
-				
+
 	        	input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 1);
 				input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, width0);
 	       		input_report_abs(ts->input_dev, ABS_MT_POSITION_X, curr_ts_data.X_position[0]);
@@ -860,7 +987,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 
 				tmp_x = (int)TS_SNTS_GET_X_POSITION(ts_reg_data.X_high_position_finger0_reg, ts_reg_data.XY_low_position_finger0_reg);
 				tmp_y = (int)TS_SNTS_GET_Y_POSITION(ts_reg_data.Y_high_position_finger0_reg, ts_reg_data.XY_low_position_finger0_reg);
-				
+
 				curr_ts_data.X_position[0] = tmp_x;
 		  		curr_ts_data.Y_position[0] = tmp_y;
 
@@ -882,29 +1009,28 @@ static void synaptics_ts_work_func(struct work_struct *work)
 				touch1_prestate = 0;
 			}
 
-
 			if((finger1_status == 1) || (finger1_status == 2)/* && (touch1_prestate == 1)*/)
 			{
 				ts_pre_state = 1;
 				touch2_prestate = 1;
-				
+
 				tmp_x = (int)TS_SNTS_GET_X_POSITION(ts_reg_data.X_high_position_finger1_reg, ts_reg_data.XY_low_position_finger1_reg);
 				tmp_y = (int)TS_SNTS_GET_Y_POSITION(ts_reg_data.Y_high_position_finger1_reg, ts_reg_data.XY_low_position_finger1_reg);
-				
+
 				if ((((ts_reg_data.XY_width_finger1_reg & 240) >> 4) - (ts_reg_data.XY_width_finger1_reg & 15)) > 0)
 					width1 = (ts_reg_data.XY_width_finger1_reg & 240) >> 4;
 				else
 					width1 = ts_reg_data.XY_width_finger1_reg & 15;
-				
+
 				curr_ts_data.X_position[1] = tmp_x;
 				curr_ts_data.Y_position[1] = tmp_y;
-				
+
 				input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 1);
 				input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, width1);
 				input_report_abs(ts->input_dev, ABS_MT_POSITION_X, curr_ts_data.X_position[1]);
 				input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, curr_ts_data.Y_position[1]);
 				input_mt_sync(ts->input_dev);
-				
+
 				DEBUG_MSG("push : second_x= %d, second_y = %d, width = %d\n", curr_ts_data.X_position[1], curr_ts_data.Y_position[1], width1);
 			}
 			else if((finger1_status == 0) /*&& (touch1_prestate == 1)*/ && (touch2_prestate == 1))
@@ -940,7 +1066,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 			{
 				break;
 			}
-		
+
 			msleep(SYNAPTICS_TS_POLLING_TIME);	
 		}/* End of While(1) */
 	}
@@ -973,8 +1099,8 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 	unsigned char reg_data2[27];
 	char tmp_buf[700];
 	int fd_check, fd;
-#endif
-	int melting_reg =0;
+#endif // TOUCH_TEST
+	int melting_reg = 0;
 	int_mode = i2c_smbus_read_byte_data(ts->client, INT_STATUS_REG);
 
 	DEBUG_MSG("synaptics_ts_new_work_func : int mode = 0x%x\n", int_mode);
@@ -1016,47 +1142,17 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 			sys_close(fd);
 		}
 	}
-#endif
+#endif // TOUCH_TEST
 
 #ifdef SYNAPTICS_ESD_RECOVERY
-	if(int_mode&SYNAPTICS_INT_STATUS)
+	if(int_mode & SYNAPTICS_INT_STATUS)
 	{
 		DEBUG_MSG("synaptics_ts_new_work_func : int_mode = 0x%x\n",int_mode);
 		device_status = i2c_smbus_read_byte_data(ts->client, START_ADDR);
-		if((device_status&0x03) == 0x03)
+		if((device_status & 0x03) == 0x03)
 		{
 			SHOW_MSG("synaptics_ts_new_work_func : death from ESD attack\n");
-
-			if (ts->use_irq)
-				disable_irq(ts->client->irq);
-			else
-				hrtimer_cancel(&ts->timer);
-
-			msleep(100);
-			if (ts->power) {
-			ret = ts->power(0);
-			if (ret < 0)
-				ERR_MSG("synaptics_ts_resume power off failed\n");
-		    }
-
-			msleep(50);
-
-			if (ts->power) {
-				ret = ts->power(1);
-				if (ret < 0)
-					ERR_MSG("synaptics_ts_resume power on failed\n");
-			}
-			msleep(400);
-			is_first_release_event = 1;
-			meltingmode = SYNAPTICS_MELTING_MELT;
-			firsttap = 0;
-			if (ts->use_irq)
-				enable_irq(ts->client->irq);
-			else
-				hrtimer_start(&ts->timer, ktime_set(1, 0), HRTIMER_MODE_REL);
-
-			SHOW_MSG("synaptics_ts_new_work_func : death from ESD attack --> recovery action completed\n");
-
+			Synaptics_ts_recovery(ts);
 			goto SYNAPTICS_TS_IDLE;
 		}
 	}
@@ -1083,22 +1179,22 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 		}
 
 		msleep(100);
-		
+
 		if (ts->power) {
 			ret = ts->power(1);
 			if (ret < 0)
 				ERR_MSG("synaptics_ts_resume power on failed\n");
-#ifdef SYNAPTICS_MELTINGMODE
+  #ifdef SYNAPTICS_MELTINGMODE
 			is_first_release_event = 1;
 			meltingmode = SYNAPTICS_MELTING_MELT;
 			firsttap = 0;
-#endif
-#ifdef SYNAPTICS_TS_MELTING_MODE2
+  #endif // SYNAPTICS_MELTINGMODE
+  #ifdef SYNAPTICS_TS_MELTING_MODE2
 			numfinger = 0; 
 			tapcount = 0;
+			reportcnt =0;
 			mode = 1;
-#endif
-
+  #endif // SYNAPTICS_TS_MELTING_MODE2
 		}
 
 		i2c_smbus_write_byte_data(ts->client, SYNAPTICS_CONTROL_REG, SYNAPTICS_CONTROL_NOSLEEP); /* wake up */
@@ -1112,7 +1208,7 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 
 		goto SYNAPTICS_TS_IDLE;
 	}
-#endif
+#endif // SYNAPTICS_ESD_RECOVERY
 
 	if(int_mode & SYNAPTICS_INT_ABS0)
 	{
@@ -1120,12 +1216,17 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 		while (1) 
 #endif			
 		{
-			// 
-			i2c_smbus_read_i2c_block_data(ts->client, START_ADDR, sizeof(ts_reg_data), &ts_reg_data);
+			ret = i2c_smbus_read_i2c_block_data(ts->client, START_ADDR, sizeof(ts_reg_data), &ts_reg_data);
+			if (ret < 0)
+			{
+				ERR_MSG("synaptics_ts_new_work_func: i2c_smbus_read_i2c_block_data failed: START_ADDR\n");
+				Synaptics_ts_recovery(ts);
+				goto SYNAPTICS_TS_IDLE;
+			}
 
 			finger0_status = TS_SNTS_GET_FINGER_STATE_0(ts_reg_data.finger_state_reg);
 			finger1_status = TS_SNTS_GET_FINGER_STATE_1(ts_reg_data.finger_state_reg);
-			
+
 			DEBUG_MSG("synaptics_ts_new_work_func : finger0_status = 0x%x, finger1_status = 0x%x\n",finger0_status,finger1_status);
 #ifndef SYNAPTICS_TS_REPORTING_RATE_ENHANCED			
 			if((finger0_status == 0) && (ts_pre_state == 0)) 
@@ -1136,7 +1237,7 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 				//msleep(100); /* FIXME:  temporal delay due to interrupt not cleared by touch IC */
 				goto SYNAPTICS_TS_IDLE;
 			}
-#endif
+#endif // SYNAPTICS_TS_REPORTING_RATE_ENHANCED
 			if((finger0_status == 1)) 
 			{
 				ts_pre_state = 1;
@@ -1161,14 +1262,14 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 					save_ts_data.X_position[0] = tmp_x;
 					save_ts_data.Y_position[0] = tmp_y;
 					firsttap=1;
+					pushed_jiffies = jiffies; //
 				}
-				
-#endif
+#endif // SYNAPTICS_MELTINGMODE
 				if ((((ts_reg_data.XY_width_finger0_reg & 240) >> 4) - (ts_reg_data.XY_width_finger0_reg & 15)) > 0)
 					width0 = (ts_reg_data.XY_width_finger0_reg & 240) >> 4;
 				else
 					width0 = ts_reg_data.XY_width_finger0_reg & 15;
-
+				
 	        	input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 1);
 				input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, width0);
 	       		input_report_abs(ts->input_dev, ABS_MT_POSITION_X, curr_ts_data.X_position[0]);
@@ -1189,7 +1290,7 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 
 				tmp_x = (int)TS_SNTS_GET_X_POSITION(ts_reg_data.X_high_position_finger0_reg, ts_reg_data.XY_low_position_finger0_reg);
 				tmp_y = (int)TS_SNTS_GET_Y_POSITION(ts_reg_data.Y_high_position_finger0_reg, ts_reg_data.XY_low_position_finger0_reg);
-				
+
 				curr_ts_data.X_position[0] = tmp_x;
 		  		curr_ts_data.Y_position[0] = tmp_y;
 
@@ -1206,16 +1307,18 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 // #ifndef SYNAPTICS_TS_MELTING_MODE2	
 				
 #ifdef SYNAPTICS_MELTINGMODE
+				// LGE_CHANGE_S  maual test mode [GELATO] [START]
 				if(lge_manual_test_mode == 1) //manual_mode
+				// LGE_CHANGE_S  maual test mode [GELATO] [END]
 				{
-#if 1 //  changed into  no meltmode by 1st drag or 3th's tap 
+  #if 1 //  changed into  no meltmode by 1st drag or 3th's tap 
 //				SHOW_MSG("chaning melting mode drag :meltingmode:%d, finger1_status=%d\n",meltingmode,finger1_status);
-				firsttap =0;	
 				if((meltingmode == SYNAPTICS_MELTING_MELT)&&(finger1_status==0)&&(touch2_prestate == 0))// if melting mode && only 1 finger
 				{
 					//SHOW_MSG(">>chaning melting mode drag :save_ts_data.X_position[0]:%d, save_ts_data.Y_position[0]=%d\n",abs(save_ts_data.X_position[0] - curr_ts_data.X_position[0]),abs(save_ts_data.Y_position[0] - curr_ts_data.Y_position[0]));
 					SHOW_MSG(">>chaning melting mode count: finger_count=%d\n",save_ts_data.finger_count);
-#if 0					
+					firsttap =0;
+    #if 0					
 					if((abs(save_ts_data.X_position[0] - curr_ts_data.X_position[0]) > 140)
 						||(abs(save_ts_data.Y_position[0] - curr_ts_data.Y_position[0]) > 140)) // if the distance is more than 7mm
 					{
@@ -1225,47 +1328,66 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 						SHOW_MSG("chaning melting mode drag : melting --> No melting\n");
 					}
 					else
-#endif
-					if(save_ts_data.finger_count++ > 2) // only single tap over 3
+    #endif
+					
+                    if(/*time_before(jiffies, pushed_jiffies + 2*HZ) && */time_after(jiffies, pushed_jiffies+4))//( jiffies - pushed_jiffies > 4)
+                    {
+						if( ++save_ts_data.finger_count > 2 ) // only single tap over 3
+						{
+							i2c_smbus_write_byte_data(ts->client, SYNAPTICS_MELTING_REG, SYNAPTICS_MELTING_NO); // not melting mode
+							meltingmode = SYNAPTICS_MELTING_NO;
+							SHOW_MSG("chaning melting mode finger_count =%d : melting --> No melting\n",save_ts_data.finger_count);
+							save_ts_data.finger_count =0;
+							firsttap=1;
+						}
+                    }
+					else
 					{
-						i2c_smbus_write_byte_data(ts->client, SYNAPTICS_MELTING_REG, SYNAPTICS_MELTING_NO); // not melting mode
-						meltingmode = SYNAPTICS_MELTING_NO;
-						SHOW_MSG("chaning melting mode finger_count =%d : melting --> No melting\n",save_ts_data.finger_count);
 						save_ts_data.finger_count =0;
-				
 					}
-#if 0	// manual_mode 				
+					SHOW_MSG(">>>jiffies=%lu, pushed_jiffies= %lu ,jiffies-pushed_jiffies= %lu \n", jiffies, pushed_jiffies, jiffies - pushed_jiffies);
+    #if 0 // manual_mode 				
 #ifdef SYNAPTICS_TS_REPORTING_RATE_ENHANCED
 					ret =i2c_smbus_write_byte_data(ts->client, REPORT_MODE_2D,0x09);
 					if (ret < 0)
-							ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data failed\n");
+						ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data failed\n");
 					//ERR_MSG("i2c_smbus_write_byte_data: REPORT_MODE_2D = 0x08\n");
 					ret =i2c_smbus_write_byte_data(ts->client, DELTA_X_THRESH_REG, 0x10);
-						if (ret < 0)
-								ERR_MSG("synaptics_ts_probe: i2c_smbus_write_byte_data X threshold failed\n");
+					if (ret < 0)
+						ERR_MSG("synaptics_ts_probe: i2c_smbus_write_byte_data X threshold failed\n");
 						//ERR_MSG("synaptics_ts_probe: i2c_smbus_write_byte_data X threshold 0x%x\n",ret);
 					ret =i2c_smbus_write_byte_data(ts->client, DELTA_Y_THRESH_REG, 0x10);
 					if (ret < 0)
-							ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data Y threshold failed\n");
+						ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data Y threshold failed\n");
 					//ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data Y threshold 0x%x\n",ret);
-#endif					
-#endif
+#endif // SYNAPTICS_TS_REPORTING_RATE_ENHANCED
+    #endif // manual_mode 		
 				}
 				}
-#else
+  #else //  changed into  no meltmode by 1st drag or 3th's tap 
 				if(is_first_release_event == 1)
 				{
-					i2c_smbus_write_byte_data(ts->client, SYNAPTICS_MELTING_REG, SYNAPTICS_MELTING_NO); 	// melting mode
+					i2c_smbus_write_byte_data(ts->client, SYNAPTICS_MELTING_REG, SYNAPTICS_MELTING_AUTO); 	// melting mode
 					is_first_release_event = 0;
 					DEBUG_MSG("chaning melting mode : melting --> auto melting\n");
 				}
-#endif				
-#endif
+  #endif //  changed into  no meltmode by 1st drag or 3th's tap 
+#endif // SYNAPTICS_MELTINGMODE
 //#endif
+
 #ifdef SYNAPTICS_TS_REPORTING_RATE_ENHANCED
 				if(is_first_release_event == 1)
 				{
 					SHOW_MSG("is_first_release_event = %d\n",is_first_release_event);
+  #ifdef SYNAPTICS_TS_AUTOMELTING_MODE
+  // LGE_CHANGE_S maual test mode [GELATO] [START]
+					if(lge_manual_test_mode != 1) //manual_mode
+  // LGE_CHANGE_S maual test mode [GELATO] [END]
+					{
+						i2c_smbus_write_byte_data(ts->client, SYNAPTICS_MELTING_REG, SYNAPTICS_MELTING_AUTO); 	// automelting mode
+						SHOW_MSG("chaning melting mode : melting --> auto melting\n");
+					}
+  #endif // SYNAPTICS_TS_AUTOMELTING_MODE
 					ret =i2c_smbus_write_byte_data(ts->client, REPORT_MODE_2D,0x09);
 					if (ret < 0)
 							ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data failed\n");
@@ -1280,7 +1402,7 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 					is_first_release_event = 0;
 					
 				}
-#endif				
+#endif // SYNAPTICS_TS_REPORTING_RATE_ENHANCED
 				// LGE_CHANGE_S [myeonggyu.son@lge.com] [2011.02.25] [GELATO] enable or disable key logging status of slate [START]
 #ifdef CONFIG_LGE_DIAG
 				if(key_touch_logging_status == 1)
@@ -1288,30 +1410,32 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 #endif
 				// LGE_CHANGE_E [myeonggyu.son@lge.com] [2011.02.25] [GELATO] enable or disable key logging status of slate [END]
 				//melting_reg=i2c_smbus_read_byte_data(ts->client, SYNAPTICS_MELTING_REG); // not melting mode
-				DEBUG_MSG(">>>>release : melting_reg = 0x%x\n", melting_reg );
+			//SHOW_MSG(">>>>release : melting_reg = 0x%x\n", melting_reg );
 				DEBUG_MSG("release : first_x= %d, first_y = %d, width = %d\n", curr_ts_data.X_position[0], curr_ts_data.Y_position[0], width0);
 			}
 			else if(finger0_status == 0)
 			{
 #ifdef SYNAPTICS_MELTINGMODE
-#if 0
+  #ifdef SYNAPTICS_TS_AUTOMELTING_MODE
+SHOW_MSG(">>>> finger0_status : finger0_status == 0\n");
+    //#if 0
 				if(is_first_release_event == 1)
 				{
-					i2c_smbus_write_byte_data(ts->client, SYNAPTICS_MELTING_REG, SYNAPTICS_MELTING_NO); 	// melting mode
-					is_first_release_event = 0;
-					DEBUG_MSG("chaning melting mode : melting --> auto melting\n");
+					// LGE_CHANGE_S maual test mode [GELATO] [START]
+					if(lge_manual_test_mode != 1) //manual_mode
+					// LGE_CHANGE_S maual test mode [GELATO] [END]
+					{
+						i2c_smbus_write_byte_data(ts->client, SYNAPTICS_MELTING_REG, SYNAPTICS_MELTING_AUTO); 	//automelting mode
+						is_first_release_event = 0;
+						DEBUG_MSG("chaning melting mode [finger0_status ]: melting --> auto melting\n");
+					}
+					
 				}
-#endif				
-#endif
-
+    //#endif				
+  #endif // SYNAPTICS_TS_AUTOMELTING_MODE
+#endif // SYNAPTICS_MELTINGMODE
 				touch1_prestate = 0;
 			}
-#ifdef SYNAPTICS_TS_MELTING_MODE2
-			if(lge_manual_test_mode != 1) //manual_mode
-			{
-				NoMeltChange(ts);
-			}
-#endif
 
 			if((finger1_status == 1)/* && (touch1_prestate == 1)*/)
 			{
@@ -1380,8 +1504,18 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 			{
 				touch2_prestate = 0;
 			}
-			
+
 			input_sync(ts->input_dev);
+#ifdef SYNAPTICS_TS_MELTING_MODE2
+  #ifndef SYNAPTICS_TS_AUTOMELTING_MODE
+			// LGE_CHANGE_S maual test mode [GELATO] [START]
+			if(lge_manual_test_mode != 1) //manual_mode
+			// LGE_CHANGE_S maual test mode [GELATO] [END]
+			{
+				NoMeltChange(ts);
+			}
+  #endif // SYNAPTICS_TS_AUTOMELTING_MODE
+#endif // SYNAPTICS_TS_MELTING_MODE2
 #ifndef SYNAPTICS_TS_REPORTING_RATE_ENHANCED
 			if ((ts_pre_state == 0) || (power_status == 0))
 			{
@@ -1389,7 +1523,7 @@ static void synaptics_ts_new_work_func(struct work_struct *work)
 			}
 
 			msleep(SYNAPTICS_TS_POLLING_TIME);	
-#endif
+#endif // SYNAPTICS_TS_REPORTING_RATE_ENHANCED
 		}/* End of While(1) */
 	}
 	
@@ -1436,17 +1570,17 @@ static void synaptics_ts_get_device_inform(int product_num)
 			for(i=0;i<CMD_REG_BLOCK_NUM;i++)
 				reg_block_num[i] = i+0x58;
 			break;
+
 		case SYNAPTICS_2100:
-#if (SYNAPTICS_WINDOW_CHANGE >HW_REVA)//gelato window change			
+#if (SYNAPTICS_WINDOW_CHANGE > HW_REVA)//gelato window change			
 			for(i=0;i<CMD_REG_BLOCK_NUM;i++)
 				reg_block_num[i]=i+0x70;
 #else
 			for(i=0;i<CMD_REG_BLOCK_NUM;i++)
 				reg_block_num[i]=i+0x5C;
-#endif			
-
-			 
+#endif // (SYNAPTICS_WINDOW_CHANGE > HW_REVA)			 
 			break;
+
 		case SYNAPTICS_3000:
 		default:
 			for(i=0;i<CMD_REG_BLOCK_NUM;i++)
@@ -1455,7 +1589,7 @@ static void synaptics_ts_get_device_inform(int product_num)
 			break;
 	}
 	memcpy(&ts_cmd_reg_data, &reg_block_num[0], CMD_REG_BLOCK_NUM);
-	
+
 	return;
 }
 
@@ -1499,7 +1633,6 @@ static int synaptics_ts_probe(
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		ERR_MSG("synaptics_ts_probe: need I2C_FUNC_I2C\n");
 		ret = -ENODEV;
-		
 		goto err_check_functionality_failed;
 	}
 
@@ -1535,17 +1668,18 @@ static int synaptics_ts_probe(
 		is_first_release_event = 1;
 		meltingmode = SYNAPTICS_MELTING_MELT;
 		firsttap =0;
-#endif
+#endif // SYNAPTICS_MELTINGMODE
 #ifdef SYNAPTICS_TS_MELTING_MODE2
 		numfinger = 0; 
 		tapcount = 0;
+		reportcnt =0;
 		mode = 1;
-#endif
+#endif // SYNAPTICS_TS_MELTING_MODE2
 		power_status = 1;
 	}
 
 	for(i=0;i <PRODUCT_ID_STRING_NUM;i++)
-		product_name[i]=NULL;
+		product_name[i] = NULL;
 	
 	ret = i2c_smbus_read_byte_data(ts->client, QUERY_BASE_REG);
 	if (ret < 0) {
@@ -1692,10 +1826,10 @@ static int synaptics_ts_probe(
 			is_need_forced_update = 1;
 		}
 	}
-#endif
-//Gesture enable => disable for intruppt 
-// LGE_CHANGE_S [yt.kim@lge.com] [2011.03.14] [GELATO] 
+#endif // SYNAPTICS_FW_REFLASH
 
+//Gesture enable => disable for intruppt 
+// LGE_CHANGE_S maual test mode [GELATO] 
 	ret = i2c_smbus_read_byte_data(ts->client, GESTURE_ENABLE1_REG);
 	if (ret < 0) {
 		ERR_MSG("i2c_smbus_read_word_data failed\n");
@@ -1703,11 +1837,12 @@ static int synaptics_ts_probe(
 	SHOW_MSG("synaptics_ts_probe: GESTURE_ENABLE1_REG 0x%x\n", ret);
 
 	gesture_data1 = (ret & GESTURE_ENABLE1_REG_M);
+
 	ret = i2c_smbus_write_byte_data(ts->client, GESTURE_ENABLE1_REG, gesture_data1); /* sleep */
-		if (ret < 0)
-			ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data failed\n");
+	if (ret < 0)
+		ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data failed\n");
 	SHOW_MSG("synaptics_ts_probe: GESTURE_ENABLE1_REG write 0x%x\n", gesture_data1);
-	
+
 	ret = i2c_smbus_read_byte_data(ts->client, GESTURE_ENABLE2_REG);
 	if (ret < 0) {
 		ERR_MSG("i2c_smbus_read_word_data failed\n");
@@ -1716,8 +1851,8 @@ static int synaptics_ts_probe(
 	
 	gesture_data2 = (ret & GESTURE_ENABLE2_REG_M);
 	ret = i2c_smbus_write_byte_data(ts->client, GESTURE_ENABLE2_REG, gesture_data2); 
-		if (ret < 0)
-			ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data failed\n");
+	if (ret < 0)
+		ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data failed\n");
 	SHOW_MSG("synaptics_ts_probe: GESTURE_ENABLE2_REG write 0x%x\n", gesture_data2);
 #if 0 
 	ret = i2c_smbus_read_byte_data(ts->client, GESTURE_ENABLE1_REG); 
@@ -1731,7 +1866,7 @@ static int synaptics_ts_probe(
 			ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data failed\n");
 	SHOW_MSG("synaptics_ts_probe: GESTURE_ENABLE2_REG 0x%x\n", ret);
 #endif
-// LGE_CHANGE_E [yt.kim@lge.com] [2011.03.14] [GELATO]
+// LGE_CHANGE_E maual test mode [GELATO]
 
 	ret = i2c_smbus_read_i2c_block_data(ts->client, START_ADDR, sizeof(ts_reg_data), &ts_reg_data);
 	if (ret < 0) 
@@ -1739,7 +1874,7 @@ static int synaptics_ts_probe(
 		ERR_MSG("synaptics_ts_probe : i2c_smbus_read_i2c_block_data failed: START_ADDR\n");
 	}
 	DEBUG_MSG("synaptics_ts_probe : status_reg(%d), interrupt_status_reg(%d,)\n", ts_reg_data.device_status_reg, ts_reg_data.interrupt_status_reg);
-	
+
 	ts->input_dev = input_allocate_device();
 	if (ts->input_dev == NULL) {
 		ret = -ENOMEM;
@@ -1779,10 +1914,13 @@ static int synaptics_ts_probe(
 	ret =i2c_smbus_write_byte_data(ts->client, DELTA_Y_THRESH_REG,0x10);
 	if (ret < 0)
 			ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data Y threshold failed\n");
-#endif	
-//manual_mode
+#endif // SYNAPTICS_TS_REPORTING_RATE_ENHANCED
+	//manual_mode
+	// LGE_CHANGE_S maual test mode [GELATO] [START]
 	lge_manual_test_mode = msm_get_manual_test_mode();
     ERR_MSG("synaptics_ts_probe: lge_manual_test_mode = %d\n",lge_manual_test_mode);
+	// LGE_CHANGE_S maual test mode [GELATO] [END]
+
 	if (client->irq) 
 	{
 		ret = request_irq(client->irq, synaptics_ts_irq_handler, irqflags, client->name, ts);
@@ -1803,13 +1941,14 @@ static int synaptics_ts_probe(
 		ts->timer.function = synaptics_ts_timer_func;
 		hrtimer_start(&ts->timer, ktime_set(1, 0), HRTIMER_MODE_REL);
 	}
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	//ts->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
 	ts->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN -40;
 	ts->early_suspend.suspend = synaptics_ts_early_suspend;
 	ts->early_suspend.resume = synaptics_ts_late_resume;
 	register_early_suspend(&ts->early_suspend);
-#endif
+#endif // CONFIG_HAS_EARLYSUSPEND
 
 #ifdef SYNAPTICS_FW_REFLASH
 	if(synaptics_fwdl_wq)
@@ -1890,12 +2029,12 @@ static int synaptics_ts_resume(struct i2c_client *client)
 			ERR_MSG("synaptics_ts_resume power on failed\n");
 	}
 
-//    ret=i2c_smbus_write_byte_data(ts->client, SYNAPTICS_CONTROL_REG, SYNAPTICS_CONTROL_NOSLEEP); /* wake up */
+    ret=i2c_smbus_write_byte_data(ts->client, SYNAPTICS_CONTROL_REG, SYNAPTICS_CONTROL_NOSLEEP); /* wake up */
 //	if (ret < 0)
 //				ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data failed\n");
 #if 0 // change to synaptics_ts_new_work_func()
 	//Gesture enable => disable for intruppt 
-	// LGE_CHANGE_S [yt.kim@lge.com] [2011.03.14] [GELATO] 
+	// LGE_CHANGE_S maual test mode [GELATO] 
 	
 	msleep(100);
 	ret = i2c_smbus_read_byte_data(ts->client, GESTURE_ENABLE1_REG);
@@ -1933,7 +2072,7 @@ static int synaptics_ts_resume(struct i2c_client *client)
 				ERR_MSG("synaptics_ts_suspend: i2c_smbus_write_byte_data failed\n");
 		SHOW_MSG("synaptics_ts_probe: GESTURE_ENABLE2_REG 0x%x\n", ret);
 #endif
-	// LGE_CHANGE_E [yt.kim@lge.com] [2011.03.14] [GELATO]
+	// LGE_CHANGE_E maual test mode [GELATO]
 #endif
 	if (ts->use_irq)
 		enable_irq(client->irq);
@@ -1945,12 +2084,13 @@ static int synaptics_ts_resume(struct i2c_client *client)
 	meltingmode = SYNAPTICS_MELTING_MELT;
 	firsttap =0;
 	save_ts_data.finger_count =0;
-#endif
+#endif // SYNAPTICS_MELTINGMODE
 #ifdef SYNAPTICS_TS_MELTING_MODE2
 			numfinger = 0; 
 			tapcount = 0;
+			reportcnt = 0;
 			mode = 1;
-#endif
+#endif // SYNAPTICS_TS_MELTING_MODE2
 
 	power_status = 1;
 
@@ -1971,7 +2111,7 @@ static void synaptics_ts_late_resume(struct early_suspend *h)
 	ts = container_of(h, struct synaptics_ts_data, early_suspend);
 	synaptics_ts_resume(ts->client);
 }
-#endif
+#endif // CONFIG_HAS_EARLYSUSPEND
 
 static const struct i2c_device_id synaptics_ts_id[] = {
 	{ "synaptics-rmi-ts", 0 },
@@ -1984,7 +2124,7 @@ static struct i2c_driver synaptics_ts_driver = {
 #ifndef CONFIG_HAS_EARLYSUSPEND
 	.suspend	= synaptics_ts_suspend,
 	.resume		= synaptics_ts_resume,
-#endif
+#endif // CONFIG_HAS_EARLYSUSPEND
 	.id_table	= synaptics_ts_id,
 	.driver = {
 		.name	= "synaptics-rmi-ts",
@@ -2007,7 +2147,7 @@ static int __devinit synaptics_ts_init(void)
 #else
 	if (!synaptics_wq)
 		return -ENOMEM;
-#endif
+#endif // SYNAPTICS_FW_REFLASH
 
 	return i2c_add_driver(&synaptics_ts_driver);
 }
@@ -2022,7 +2162,7 @@ static void __exit synaptics_ts_exit(void)
 #ifdef SYNAPTICS_FW_REFLASH
 	if (synaptics_fwdl_wq)
 		destroy_workqueue(synaptics_fwdl_wq);
-#endif
+#endif // SYNAPTICS_FW_REFLASH
 }
 
 module_init(synaptics_ts_init);

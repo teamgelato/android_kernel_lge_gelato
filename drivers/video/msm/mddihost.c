@@ -527,7 +527,7 @@ void mddi_host_register_cmds_write8(unsigned reg_addr, unsigned count, unsigned 
 		mddi_linked_list_notify_type *llist_notify_ptr;
 		llist_notify_ptr = &llist_extern_notify[host][curr_llist_idx];
 		wait_ret = wait_for_completion_timeout(
-					&(llist_notify_ptr->done_comp), 0.05 * HZ);
+					&(llist_notify_ptr->done_comp), 0.5 * HZ);
 
 		if (wait_ret <= 0)
 			ret = -EBUSY;

@@ -47,7 +47,8 @@ static u32 gelato_battery_capacity(u32 current_soc)
 
 static struct msm_psy_batt_pdata msm_psy_batt_data = {
 	.voltage_min_design     = 3200,
-	.voltage_max_design     = 4200,
+	//.voltage_max_design     = 4200,				
+	.voltage_max_design     = 4300,				// 110905, junsin.park@lge.com, In fully-charged battery, to avoid over voltage status caused by voltage offset
 	.avail_chg_sources      = AC_CHG | USB_CHG ,
 	.batt_technology        = POWER_SUPPLY_TECHNOLOGY_LION,
 #if defined(CONFIG_LGE_FUEL_GAUGE)

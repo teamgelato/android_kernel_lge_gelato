@@ -136,16 +136,16 @@ static int handle_rpc_call(struct msm_rpc_server *server,
 					"now=%lld tick_at_suspend=%lld",
 					__func__, now, tick_at_suspend);
 #else
-			int64_t now, sleep, tick_at_suspend;
-			now = msm_timer_get_sclk_time(NULL);
-			tick_at_suspend = msmrtc_get_tickatsuspend();
-			if (now && tick_at_suspend) {
-				sleep = now - tick_at_suspend;
-				timespec_add_ns(&ts, sleep);
-			} else
-				pr_err("%s: Invalid ticks from SCLK"
-					"now=%lld tick_at_suspend=%lld",
-					__func__, now, tick_at_suspend);
+	   		int64_t now, sleep, tick_at_suspend;
+	   		now = msm_timer_get_sclk_time(NULL);
+	   		tick_at_suspend = msmrtc_get_tickatsuspend();
+	   		if (now && tick_at_suspend) {
+	   			sleep = now - tick_at_suspend;
+	   			timespec_add_ns(&ts, sleep);
+	   		} else
+	   			pr_err("%s: Invalid ticks from SCLK"
+	   				"now=%lld tick_at_suspend=%lld",
+	   				__func__, now, tick_at_suspend);
 #endif
 //20110813 hyeongwoo.seo@lge.com add period [END]
 

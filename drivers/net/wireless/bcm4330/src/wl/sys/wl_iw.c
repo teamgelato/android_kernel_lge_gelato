@@ -756,6 +756,7 @@ wl_iw_set_power_mode(
 }
 #endif 
 
+#if 1 //def CONFIG_MACH_MAHIMAHI	//LGE_CHANGE_S. applying driver patch for "get power mode"
 static int
 wl_iw_get_power_mode(
 	struct net_device *dev,
@@ -784,6 +785,7 @@ wl_iw_get_power_mode(
 	wrqu->data.length = p - extra + 1;
 	return error;
 }
+#endif /* CONFIG_MACH_MAHIMAHI */
 
 #if !defined(CONFIG_LGE_BCM432X_PATCH) // yhcha@110218
 static int
@@ -5786,7 +5788,8 @@ wl_iw_set_powermode(
 	switch (mode) {
 	case 0: mode = 2; break; /* Fast PS mode */
 	case 1: mode = 0; break; /* No PS mode */
-	default: return -EINVAL;
+		//default: return -EINVAL;
+	default: mode = 2; break;
 	}
 	error = dev_wlc_ioctl(dev, WLC_SET_PM, &mode, sizeof(mode));
 	p += snprintf(p, MAX_WX_STRING, error < 0 ? "FAIL\n" : "OK\n");

@@ -48,6 +48,12 @@ PACK (void *)LGF_Udm (PACK (void *)req_pkt_ptr, uint16 pkt_len );
 #ifdef CONFIG_LGE_DIAG_MTC
 PACK (void *)LGF_MTCProcess (PACK (void *)req_pkt_ptr, uint16 pkt_len );
 #endif
+#if 1	//def LG_FW_SECURITY_BINARY
+PACK (void *)LGF_TFSBProcess (PACK (void *)req_pkt_ptr, uint16 pkt_len );
+#endif
+#if 1	//def LG_FW_USB_ACCESS_LOCK
+PACK (void *)LGF_TFProcess (PACK (void *)req_pkt_ptr, uint16 pkt_len );
+#endif
 #ifdef CONFIG_LGE_DIAG_ICD
 PACK (void *)LGE_ICDProcess (PACK (void *)req_pkt_ptr, uint16 pkg_len);
 #endif
@@ -76,6 +82,12 @@ static const diagpkt_user_table_entry_type registration_table[] =
 #ifdef CONFIG_LGE_DIAG_SCREENSHOT
 	{DIAG_LGF_SCREEN_SHOT_F , DIAG_LGF_SCREEN_SHOT_F , LGF_ScreenShot},
 	{DIAG_LGE_SCREEN_SECTION_SHOT_F, DIAG_LGE_SCREEN_SECTION_SHOT_F, LGE_ScreenSectionShot},
+#endif
+#if 1	//def LG_FW_SECURITY_BINARY
+	{DIAG_TF_SB_CMD_F, DIAG_TF_SB_CMD_F, LGF_TFSBProcess},
+#endif
+#if 1	//def LG_FW_USB_ACCESS_LOCK
+	{DIAG_TF_CMD_F, DIAG_TF_CMD_F, LGF_TFProcess},
 #endif
 #ifdef CONFIG_LGE_DIAG_MTC
 	{DIAG_MTC_F, DIAG_MTC_F, LGF_MTCProcess},

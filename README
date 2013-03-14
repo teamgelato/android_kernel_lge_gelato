@@ -1,17 +1,3 @@
-
-How to build.
-assume I extracted linaro-gcc to /usr/share/toolkits/linaro
-
-1. git clone [GIT-URL] [NAME]
-2. cd [NAME]
-3. make -j[# of cores + 1] ARCH=arm CROSS_COMPILE=/usr/share/toolchains/linaro/bin/arm-linux-gnueabihf- gelato-perf_defconfig
-4. make -j[# of cores + 1] ARCH=arm CROSS_COMPILE=/usr/share/toolchains/linaro/bin/arm-linux-gnueabihf- menuconfig
-5. make -j[# of cores + 1] ARCH=arm CROSS_COMPILE=/usr/share/toolchains/linaro/bin/arm-linux-gnueabihf-
-6. mkdir ../[DEST]
-7. cp arch/arm/boot/zImage ../[DEST]
-8. find . -name '*.ko' -exec cp {} ../[DEST] \;
-
-------------------------------------------------------------------------
 	Linux kernel release 2.6.xx <http://kernel.org/>
 
 These are the release notes for Linux version 2.6.  Read them carefully,

@@ -82,9 +82,9 @@ extern int is_fw_reflash;
 extern int name_of_product;
 //yt.kim
 #ifdef CONFIG_MACH_MSM7X27_GELATO_DOP
-static int is_need_forced_noupdate=1;
+static int is_need_forced_noupdate=0;
 #else
-static int is_need_forced_noupdate=1;
+static int is_need_forced_noupdate=0;
 #endif
 
 

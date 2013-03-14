@@ -85,9 +85,16 @@ enum {
 	LG_FW_GET_FLIGHT_MODE = 	 LG_FW_RAPI_START + 24, 
 	/*LGE_CHANGES yongman.kwon 2010-09-07[MS690] : check power mode [END]*/ 
 #endif
-
+#if 1	//def LG_FW_USB_ACCESS_LOCK
+	LG_FW_SET_USB_LOCK_STATE =   LG_FW_RAPI_START + 25,
+	LG_FW_GET_USB_LOCK_STATE =   LG_FW_RAPI_START + 26,
+#endif
 /* [yk.kim@lge.com] 2011-01-25, get manual test mode NV */
-	LG_FW_MANUAL_TEST_MODE = LG_FW_RAPI_START + 26,
+	LG_FW_MANUAL_TEST_MODE = LG_FW_RAPI_START + 27,
+
+#if 1	//def LG_FW_USB_ACCESS_LOCK
+	LG_FW_GET_SPC_CODE =   LG_FW_RAPI_START + 28,
+#endif
 
 // LGE_CHANGE [jaekyung83.lee@lge.com] 2011-06-01, Add LED On/Off oem rapi function [START]	
 	LG_FW_LED_ON = LG_FW_RAPI_START + 35,
