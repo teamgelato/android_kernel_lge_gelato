@@ -37,7 +37,7 @@
 #include <asm/atomic.h>
 #include <mach/board.h>
 #include <mach/vreg.h>
-//#include <mach/board.h>
+#include <mach/board.h> \\this was commented, uncommented it -asams
 #include <mach/board_lge.h>  
 #include <linux/slab.h>
 #include <linux/wakelock.h>
